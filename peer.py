@@ -6,9 +6,10 @@ from gevent.server import DatagramServer
 class PeerServer(DatagramServer):
     '''Peer UDP Server
     
-    Acts as the primary interface to this peer node.'''
+    Acts as the primary interface to this peer node.
+    '''
 
-    def __init__(self, address, port, id=None):
+    def __init__(self, address, port, id=None, bootstrap=[]):
         '''Creates a new peer, with the given settings.
 
         Does not bind a socket yet. Call `serve_forever` to bind and listen.
@@ -19,14 +20,29 @@ class PeerServer(DatagramServer):
         :param port: Port to bind to
         :param id: Optional Node identifier, if this 
                    peer already has a persisted identity.
+        :param bootstrap: A list of (ip, port) tuples used
+                          as an entry point into the network.
         '''
         super().__init__('%s:%s' % (address, port))
 
-        self.id = generate_id() if id is None else id
-        print('Starting Peer %s' % self.id)
+        self._id = generate_id() if id is None else id
+        self._bootstrap = list(bootstrap)
+        print('Starting Peer %s' % self._id)
+
+    @property
+    def id(self):
+        '''Unique identifier for this node.'''
+        return self._id
+    
+    def bootstrap(self, nodes):
+        '''Joins a DHT network overlay via a physical network entry point.
+        
+        Accepts an iterable of known nodes, as (ip, port) tuples.
+        '''
+        raise NotImplementedError()
 
     def handle(self, data, address): # pylint:disable=method-hidden
-        print('%s: got %r' % (address[0], data))
+        print('%s:%s: got %r' % (address[0], address[1], data))
         self.socket.sendto(('Received %s bytes' % len(data)).encode('utf-8'), address)
 
 
