@@ -1,11 +1,13 @@
 
-from gevent import monkey; monkey.patch_all()
+from dht.route import Id
 from gevent.server import DatagramServer
+from gevent import monkey
+monkey.patch_all()
 
 
 class PeerServer(DatagramServer):
     '''Peer UDP Server
-    
+
     Acts as the primary interface to this peer node.
     '''
 
@@ -25,25 +27,26 @@ class PeerServer(DatagramServer):
         '''
         super().__init__('%s:%s' % (address, port))
 
-        self._id = generate_id() if id is None else id
+        self._id = Id.generate() if id is None else id
         self._bootstrap = list(bootstrap)
-        print('Starting Peer %s' % self._id)
+        print('Starting Peer %s' % repr(self._id))
 
     @property
     def id(self):
         '''Unique identifier for this node.'''
         return self._id
-    
+
     def bootstrap(self, nodes):
         '''Joins a DHT network overlay via a physical network entry point.
-        
+
         Accepts an iterable of known nodes, as (ip, port) tuples.
         '''
         raise NotImplementedError()
 
-    def handle(self, data, address): # pylint:disable=method-hidden
+    def handle(self, data, address):  # pylint:disable=method-hidden
         print('%s:%s: got %r' % (address[0], address[1], data))
-        self.socket.sendto(('Received %s bytes' % len(data)).encode('utf-8'), address)
+        self.socket.sendto(('Received %s bytes' %
+                            len(data)).encode('utf-8'), address)
 
 
 def generate_id():
