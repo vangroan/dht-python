@@ -140,6 +140,17 @@ class Bucket:
         return False
 
 
+def _append_bit(prefix: str, bit: int):
+    '''Given a prefix in hex digest form, shift to the left and append the given
+    bit.
+
+    Returns a new prefix in hex digest.
+    '''
+    i = int(prefix, 16) << 1
+    b = bit & 0x01  # mask out potential junk
+    return '{:02x}'.format(i | b)
+
+
 class Node:
     '''Branch node of binary tree.'''
 

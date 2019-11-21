@@ -29,3 +29,8 @@ class IdTests(unittest.TestCase):
         self.assertTrue(nodeid.has_prefix('f5'))
         self.assertFalse(nodeid.has_prefix('aa'))
         self.assertTrue(nodeid.has_prefix('f55555550000'))  # too long
+
+    def test_append_bit(self):
+        self.assertEqual(route._append_bit('a', 1), '15')
+        self.assertEqual(route._append_bit('6', 0), '0c')
+        self.assertEqual(route._append_bit('6', 1), '0d')
