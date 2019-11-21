@@ -30,9 +30,14 @@ class Id(object):
     @staticmethod
     def _parse(str_data):
         '''Given a hex digest string, return ID data in byte array form.'''
-        result = array('B')
 
         # Each byte is represented by 2 hex digits
+        if len(str_data) != KEY_SIZE_BYTES * 2:
+            raise ValueError(
+                'hex digest is incorrect length to be %d-bit ID' % (KEY_SIZE_BYTES * 8))
+
+        result = array('B')
+
         for i in range(KEY_SIZE_BYTES):
             result.append(int(str_data[i:i+2], 16))
 

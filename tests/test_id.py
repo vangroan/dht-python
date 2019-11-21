@@ -10,7 +10,7 @@ class IdTests(unittest.TestCase):
         self.prev_key_size = route.KEY_SIZE_BYTES
 
         # Small key size for testing purposes
-        route.KEY_SIZE_BYTES = 1
+        route.KEY_SIZE_BYTES = 4
 
     def tearDown(self):
         # restore
@@ -18,7 +18,7 @@ class IdTests(unittest.TestCase):
         del self.prev_key_size
 
     def test_xor(self):
-        id_1 = Id('01')
-        id_2 = Id('02')
+        id_1 = Id('00000001')
+        id_2 = Id('00000002')
 
-        self.assertEqual(Id('03'), id_1 ^ id_2)
+        self.assertEqual(Id('00000003'), id_1 ^ id_2)
