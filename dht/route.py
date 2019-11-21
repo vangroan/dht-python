@@ -1,16 +1,18 @@
 
 from array import array
+from datetime import datetime
+from copy import deepcopy
 
 KEY_SIZE_BITS = 512
 KEY_SIZE_BYTES = 64
 
 
-class Id(object):
-    __slots__ = '_data',
+class NodeId(object):
+    __slots__ = ('_data',)
 
     def __init__(self, data):
         if isinstance(data, str):
-            self._data = Id._parse(data)
+            self._data = NodeId._parse(data)
         elif not isinstance(data, array):
             raise TypeError('Id data must be array of unsigned bytes')
         else:
@@ -25,7 +27,7 @@ class Id(object):
         # 64 bytes * 8 bits = 512 bits
         data = array('B', [random.randint(0, 0xFF)
                            for _ in range(KEY_SIZE_BYTES)])  # Unsigned Bytes
-        return Id(data)
+        return NodeId(data)
 
     @staticmethod
     def _parse(str_data):
@@ -44,14 +46,20 @@ class Id(object):
         return result
 
     @property
+    def raw_data(self):
+        '''Byte array representation of internal data.'''
+        return deepcopy(self._data)
+
+    @property
     def hex_digest(self):
+        '''Hex digest representation of internal data.'''
         return ''.join(('{:02x}'.format(b) for b in self._data))
 
     def __xor__(self, rhs):
         result = array('B', [0 for _ in range(KEY_SIZE_BYTES)])
         for i in range(KEY_SIZE_BYTES):
-            result[i] = self._data[i] ^ rhs._data[i]
-        return Id(result)
+            result[i] = self._data[i] ^ rhs._data[i]  # pylint: disable=protected-access
+        return NodeId(result)
 
     def __repr__(self):
         return "%s('%s')" % (self.__class__.__name__, self.hex_digest)
@@ -61,7 +69,7 @@ class Id(object):
 
     def __eq__(self, rhs):
         for i in range(KEY_SIZE_BYTES):
-            if self._data[i] != rhs._data[i]:
+            if self._data[i] != rhs._data[i]:  # pylint: disable=protected-access
                 return False
         return True
 
@@ -80,14 +88,18 @@ class RoutingTable:
         # Initial state is one k-bucket at the root.
         self._root = Bucket(initial=[Contact(None, None, owner_id, None)])
 
-    def insert(self, id):
-        raise NotImplementedError()
+    def insert(self, address, port, nodeid):
+        self._insert(Contact(address, port, nodeid, datetime.utcnow))
+
+    def _insert(self, contact):
+        '''Internal recursive insert method.'''
+        # first check if
 
 
 class Bucket:
     '''Leaf node of binary tree.'''
 
-    def __init__(self, initial=[]):
+    def __init__(self, initial=list()):
         self.contacts = initial
 
 
@@ -100,8 +112,8 @@ class Node:
 
 
 class Contact:
-    def __init__(self, address, port, id, last_seen):
+    def __init__(self, address: str, port: str, nodeid: NodeId, last_seen: datetime):
         self.address = address
         self.port = port
-        self.id = id
+        self.nodeid = nodeid
         self.last_seen = last_seen

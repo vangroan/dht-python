@@ -1,7 +1,7 @@
 
 import unittest
 from dht import route
-from dht.route import Id
+from dht.route import NodeId
 
 
 class IdTests(unittest.TestCase):
@@ -18,7 +18,7 @@ class IdTests(unittest.TestCase):
         del self.prev_key_size
 
     def test_xor(self):
-        id_1 = Id('00000001')
-        id_2 = Id('00000002')
+        id_1 = NodeId('00000001')
+        id_2 = NodeId('00000002')
 
-        self.assertEqual(Id('00000003'), id_1 ^ id_2)
+        self.assertEqual(NodeId('00000003'), id_1 ^ id_2)

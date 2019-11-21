@@ -2,13 +2,13 @@
 import gevent
 
 from dht.peer import PeerServer
-from dht.route import Id
+from dht.route import NodeId
 
 
 if __name__ == '__main__':
     print('Starting up')
 
-    id = Id.generate()
+    id = NodeId.generate()
 
     # Stop gevent from outputting exception
     # details on keyboard interrupt.

@@ -1,8 +1,6 @@
 
-from dht.route import Id
+from dht.route import NodeId
 from gevent.server import DatagramServer
-from gevent import monkey
-monkey.patch_all()
 
 
 class PeerServer(DatagramServer):
@@ -27,7 +25,7 @@ class PeerServer(DatagramServer):
         '''
         super().__init__('%s:%s' % (address, port))
 
-        self._id = Id.generate() if id is None else id
+        self._id = NodeId.generate() if id is None else id
         self._bootstrap = list(bootstrap)
         print('Starting Peer %s' % repr(self._id))
 
