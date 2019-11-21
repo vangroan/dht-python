@@ -1,3 +1,3 @@
 
 # Re-export
-from peer import PeerServer
+from .peer import PeerServer
