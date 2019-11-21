@@ -22,3 +22,10 @@ class IdTests(unittest.TestCase):
         id_2 = NodeId('00000002')
 
         self.assertEqual(NodeId('00000003'), id_1 ^ id_2)
+
+    def test_has_prefix(self):
+        nodeid = NodeId('f5555555')
+
+        self.assertTrue(nodeid.has_prefix('f5'))
+        self.assertFalse(nodeid.has_prefix('aa'))
+        self.assertTrue(nodeid.has_prefix('f55555550000'))  # too long

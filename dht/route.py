@@ -55,6 +55,19 @@ class NodeId(object):
         '''Hex digest representation of internal data.'''
         return ''.join(('{:02x}'.format(b) for b in self._data))
 
+    def has_prefix(self, prefix: str):
+        '''Checks whether the node ID starts with the given prefix.
+
+        The prefix must be supplied as a hex digest.
+        '''
+        i, j = 0, 0
+        while i < len(prefix) and j < KEY_SIZE_BYTES:
+            if int(prefix[i:i+2], 16) != self._data[j]:
+                return False
+            i += 2
+            j += 1
+        return True
+
     def __xor__(self, rhs):
         result = array('B', [0 for _ in range(KEY_SIZE_BYTES)])
         for i in range(KEY_SIZE_BYTES):
@@ -86,34 +99,58 @@ class RoutingTable:
         self._owner_id = owner_id
 
         # Initial state is one k-bucket at the root.
-        self._root = Bucket(initial=[Contact(None, None, owner_id, None)])
+        self._root = Bucket('', initial=[Contact(None, None, owner_id, None)])
 
     def insert(self, address, port, nodeid):
-        self._insert(Contact(address, port, nodeid, datetime.utcnow))
+        self._insert(self._root, Contact(
+            address, port, nodeid, datetime.utcnow())
 
-    def _insert(self, contact):
+    def _insert(self, node, contact, level=0):
         '''Internal recursive insert method.'''
-        # first check if
+
+        if isinstance(node, Bucket):
+            # Always split when encountering the owner node
+            if node.contains_id(self._owner_id):
+                pass
+
+    def _split(self, bucket):
+        '''Accepts a k-bucket, splits it into two new buckets, distributes
+        the contacts correctly between them, and returns a new branch node.
+        '''
+        node=Node()
+        node.left=Bucket()
+        node.right=Bucket()
+        return node
 
 
 class Bucket:
     '''Leaf node of binary tree.'''
 
-    def __init__(self, initial=list()):
-        self.contacts = initial
+    def __init__(self, prefix, initial=list()):
+        self.prefix=prefix
+        self.contacts=initial
+
+    def contains_id(self, nodeid):
+        '''Returns True if this bucket contains an exact match of the
+        given node ID.
+        '''
+        for c in self.contacts:
+            if c.nodeid == nodeid:
+                return True
+        return False
 
 
 class Node:
     '''Branch node of binary tree.'''
 
     def __init__(self):
-        self.left = None
-        self.right = None
+        self.left=None
+        self.right=None
 
 
 class Contact:
     def __init__(self, address: str, port: str, nodeid: NodeId, last_seen: datetime):
-        self.address = address
-        self.port = port
-        self.nodeid = nodeid
-        self.last_seen = last_seen
+        self.address=address
+        self.port=port
+        self.nodeid=nodeid
+        self.last_seen=last_seen
