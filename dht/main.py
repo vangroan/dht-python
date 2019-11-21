@@ -2,10 +2,15 @@
 import gevent
 
 from peer import PeerServer
+from route import Id
 
 
 if __name__ == '__main__':
     print('Starting up')
+
+    id = Id.generate()
+    print(repr(id))
+    print(str(id))
 
     # Stop gevent from outputting exception
     # details on keyboard interrupt.
