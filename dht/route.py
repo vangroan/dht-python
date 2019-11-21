@@ -103,7 +103,7 @@ class RoutingTable:
 
     def insert(self, address, port, nodeid):
         self._insert(self._root, Contact(
-            address, port, nodeid, datetime.utcnow())
+            address, port, nodeid, datetime.utcnow()))
 
     def _insert(self, node, contact, level=0):
         '''Internal recursive insert method.'''
@@ -117,9 +117,9 @@ class RoutingTable:
         '''Accepts a k-bucket, splits it into two new buckets, distributes
         the contacts correctly between them, and returns a new branch node.
         '''
-        node=Node()
-        node.left=Bucket()
-        node.right=Bucket()
+        node = Node()
+        node.left = Bucket('')
+        node.right = Bucket('')
         return node
 
 
@@ -127,8 +127,8 @@ class Bucket:
     '''Leaf node of binary tree.'''
 
     def __init__(self, prefix, initial=list()):
-        self.prefix=prefix
-        self.contacts=initial
+        self.prefix = prefix
+        self.contacts = initial
 
     def contains_id(self, nodeid):
         '''Returns True if this bucket contains an exact match of the
@@ -144,13 +144,13 @@ class Node:
     '''Branch node of binary tree.'''
 
     def __init__(self):
-        self.left=None
-        self.right=None
+        self.left = None
+        self.right = None
 
 
 class Contact:
     def __init__(self, address: str, port: str, nodeid: NodeId, last_seen: datetime):
-        self.address=address
-        self.port=port
-        self.nodeid=nodeid
-        self.last_seen=last_seen
+        self.address = address
+        self.port = port
+        self.nodeid = nodeid
+        self.last_seen = last_seen
