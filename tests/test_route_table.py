@@ -24,5 +24,5 @@ class TestroutingTable(unittest.TestCase):
         table = RoutingTable(owner_id)
 
         table.insert('127.0.0.1', '9001', NodeId('00000002'))
-        
+        self.assertIsNotNone(table.find(owner_id), "routing table find operation did not return anything")
         

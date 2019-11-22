@@ -68,11 +68,11 @@ class NodeId(object):
             i += 2
             j += 1
         return True
-    
+
     def nth_bit(self, n: int):
         '''Return the n-th bit of this ID, starting from the most significant bit.'''
-        i = math.floor(n / 8) # each element is an 8-bit byte
-        r = 7 - (n % 8) # bit index inside byte element
+        i = math.floor(n / 8)  # each element is an 8-bit byte
+        r = 7 - (n % 8)  # bit index inside byte element
         return (self._data[i] >> r) & 0x01
 
     def __xor__(self, rhs):
@@ -125,7 +125,7 @@ class RoutingTable:
         the contacts correctly between them, and returns a new branch node.
         '''
         prefix = bucket.prefix
-        
+
         node = Node()
         node.left = Bucket(_append_bit(prefix, 1) if prefix else '1')
         node.right = Bucket(_append_bit(prefix, 0) if prefix else '0')
@@ -137,12 +137,13 @@ class RoutingTable:
                 node.right.contacts.append(contact)
 
         return node
-    
-    def find(self, nodeid: NodeId):
-        return self._find(self._root)
 
-    def _find(self, node, level=0):
+    def find(self, nodeid: NodeId):
+        return self._find(nodeid, self._root)
+
+    def _find(self, nodeid, node, level=0):
         if isinstance(node, Bucket):
+            # Reached leaf
             if len(node.contacts) > 0:
                 # TODO: Return the most recently seen contact
                 return node.contacts[0]
@@ -150,7 +151,10 @@ class RoutingTable:
                 return None
         elif isinstance(node, Node):
             # Determine down which path we should search
-            pass
+            if nodeid.nth_bit(level) == 1:
+                return self._find(nodeid, node.left, level+1)
+            elif nodeid.nth_bit(level) == 0:
+                return self._find(nodeid, node.right, level+1)
 
 
 class Bucket:
