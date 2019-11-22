@@ -34,3 +34,13 @@ class IdTests(unittest.TestCase):
         self.assertEqual(route._append_bit('a', 1), '15')
         self.assertEqual(route._append_bit('6', 0), '0c')
         self.assertEqual(route._append_bit('6', 1), '0d')
+    
+    def test_nth_bit(self):
+        nodeid = NodeId('98765432') # ‭10011000011101100101010000110010‬
+
+        self.assertEqual(nodeid.nth_bit(0), 1)
+        self.assertEqual(nodeid.nth_bit(1), 0)
+        self.assertEqual(nodeid.nth_bit(2), 0)
+        self.assertEqual(nodeid.nth_bit(3), 1)
+        self.assertEqual(nodeid.nth_bit(4), 1)
+        self.assertEqual(nodeid.nth_bit(5), 0)

@@ -1,4 +1,5 @@
 
+import math
 from array import array
 from datetime import datetime
 from copy import deepcopy
@@ -67,6 +68,12 @@ class NodeId(object):
             i += 2
             j += 1
         return True
+    
+    def nth_bit(self, n: int):
+        '''Return the n-th bit of this ID, starting from the most significant bit.'''
+        i = math.floor(n / 8) # each element is an 8-bit byte
+        r = 7 - (n % 8) # bit index inside byte element
+        return (self._data[i] >> r) & 0x01
 
     def __xor__(self, rhs):
         result = array('B', [0 for _ in range(KEY_SIZE_BYTES)])
@@ -117,10 +124,33 @@ class RoutingTable:
         '''Accepts a k-bucket, splits it into two new buckets, distributes
         the contacts correctly between them, and returns a new branch node.
         '''
+        prefix = bucket.prefix
+        
         node = Node()
-        node.left = Bucket('')
-        node.right = Bucket('')
+        node.left = Bucket(_append_bit(prefix, 1) if prefix else '1')
+        node.right = Bucket(_append_bit(prefix, 0) if prefix else '0')
+
+        for contact in bucket.contacts:
+            if contact.nodeid.has_prefix(node.left.prefix):
+                node.left.contacts.append(contact)
+            elif contact.nodeid.has+prefix(node.right.prefix):
+                node.right.contacts.append(contact)
+
         return node
+    
+    def find(self, nodeid: NodeId):
+        return self._find(self._root)
+
+    def _find(self, node, level=0):
+        if isinstance(node, Bucket):
+            if len(node.contacts) > 0:
+                # TODO: Return the most recently seen contact
+                return node.contacts[0]
+            else:
+                return None
+        elif isinstance(node, Node):
+            # Determine down which path we should search
+            pass
 
 
 class Bucket:
