@@ -21,7 +21,9 @@ class NodeId(object):
 
     @staticmethod
     def generate():
-        '''Generates a new random 512-bit ID, and formats it as a hex-digest'''
+        '''
+        Generates a new random 512-bit ID, and formats it as a hex-digest.
+        '''
         # TODO: Replace with Crypto safe RNG
         import random
 
@@ -32,7 +34,9 @@ class NodeId(object):
 
     @staticmethod
     def _parse(str_data):
-        '''Given a hex digest string, return ID data in byte array form.'''
+        '''
+        Given a hex digest string, return ID data in byte array form.
+        '''
 
         # Each byte is represented by 2 hex digits
         if len(str_data) != KEY_SIZE_BYTES * 2:
@@ -48,16 +52,21 @@ class NodeId(object):
 
     @property
     def raw_data(self):
-        '''Byte array representation of internal data.'''
+        '''
+        Byte array representation of internal data.
+        '''
         return deepcopy(self._data)
 
     @property
     def hex_digest(self):
-        '''Hex digest representation of internal data.'''
+        '''
+        Hex digest representation of internal data.
+        '''
         return ''.join(('{:02x}'.format(b) for b in self._data))
 
     def has_prefix(self, prefix: str):
-        '''Checks whether the node ID starts with the given prefix.
+        '''
+        Checks whether the node ID starts with the given prefix.
 
         The prefix must be supplied as a hex digest.
         '''
@@ -70,7 +79,9 @@ class NodeId(object):
         return True
 
     def nth_bit(self, n: int):
-        '''Return the n-th bit of this ID, starting from the most significant bit.'''
+        '''
+        Return the n-th bit of this ID, starting from the most significant bit.
+        '''
         i = math.floor(n / 8)  # each element is an 8-bit byte
         r = 7 - (n % 8)  # bit index inside byte element
         return (self._data[i] >> r) & 0x01
@@ -88,9 +99,13 @@ class NodeId(object):
         return self.hex_digest
 
     def __eq__(self, rhs):
+        if rhs is None:
+            return False
+
         for i in range(KEY_SIZE_BYTES):
             if self._data[i] != rhs._data[i]:  # pylint: disable=protected-access
                 return False
+
         return True
 
 
@@ -106,43 +121,43 @@ class RoutingTable:
         self._owner_id = owner_id
 
         # Initial state is one k-bucket at the root.
-        self._root = Bucket('', initial=[Contact(None, None, owner_id, None)])
+        bucket = KBucket.default()
+        bucket.add(Contact(None, None, owner_id))
+        self._root = bucket
+
+        # Maximum number of contacts allowed in a k-bucket.
+        self._ksize = 20
+
+        # Maximum number of shared prefix bits allowed to be shared
+        # between contacts inside the same bucket.
+        self._depth = 5
 
     def insert(self, address, port, nodeid):
-        self._insert(self._root, Contact(
-            address, port, nodeid, datetime.utcnow()))
+        self._insert(self._root, Contact(address, port, nodeid))
 
     def _insert(self, node, contact, level=0):
-        '''Internal recursive insert method.'''
+        '''
+        Internal recursive insert method.
+        '''
 
-        if isinstance(node, Bucket):
+        if isinstance(node, KBucket):
             # Always split when encountering the owner node
-            if node.contains_id(self._owner_id):
+            if node.contains(self._owner_id):
                 pass
 
     def _split(self, bucket):
-        '''Accepts a k-bucket, splits it into two new buckets, distributes
+        '''
+        Accepts a k-bucket, splits it into two new buckets, distributes
         the contacts correctly between them, and returns a new branch node.
         '''
-        prefix = bucket.prefix
-
-        node = Node()
-        node.left = Bucket(_append_bit(prefix, 1) if prefix else '1')
-        node.right = Bucket(_append_bit(prefix, 0) if prefix else '0')
-
-        for contact in bucket.contacts:
-            if contact.nodeid.has_prefix(node.left.prefix):
-                node.left.contacts.append(contact)
-            elif contact.nodeid.has+prefix(node.right.prefix):
-                node.right.contacts.append(contact)
-
-        return node
+        (left, right) = bucket.split()
+        return (left, right)
 
     def find(self, nodeid: NodeId):
         return self._find(nodeid, self._root)
 
     def _find(self, nodeid, node, level=0):
-        if isinstance(node, Bucket):
+        if isinstance(node, KBucket):
             # Reached leaf
             if len(node.contacts) > 0:
                 # TODO: Return the most recently seen contact
@@ -157,21 +172,68 @@ class RoutingTable:
                 return self._find(nodeid, node.right, level+1)
 
 
-class Bucket:
-    '''Leaf node of binary tree.'''
+class KBucket:
+    '''
+    Container for node contacts.
 
-    def __init__(self, prefix, initial=list()):
-        self.prefix = prefix
-        self.contacts = initial
+    Leaf node of binary tree.
+    '''
+    __slots__ = ('_low', '_high', '_contacts')
 
-    def contains_id(self, nodeid):
-        '''Returns True if this bucket contains an exact match of the
+    def __init__(self, low, high):
+        self._low = min(low, high)
+        self._high = max(low, high)
+        self._contacts = []
+
+    @staticmethod
+    def default():
+        '''
+        Creates a default bucket that covers the whole key space.
+        '''
+        return KBucket(2 ** 0, 2 ** 160)
+
+    @property
+    def low(self):
+        return self._low
+
+    @property
+    def high(self):
+        return self._high
+
+    @property
+    def depth(self):
+        '''
+        Bucket depth is defined as the count of prefix bits that all contacts
+        in the bucket share.
+        '''
+        raise NotImplementedError()
+
+    @property
+    def contacts(self):
+        return self._contacts
+
+    def split(self):
+        '''
+        Splits the bucket into a two new buckets.
+        '''
+        mid = int((self._low + self._high) / 2)
+        left = KBucket(self._left, mid)
+        right = KBucket(mid, self._right)
+        return (left, right)
+
+    def contains(self, node_id):
+        '''
+        Returns True if this bucket contains an exact match of the
         given node ID.
         '''
-        for c in self.contacts:
-            if c.nodeid == nodeid:
+        for contact in self._contacts:
+            if node_id == contact.node_id:
                 return True
         return False
+
+    def add(self, contact):
+        contact.touch()
+        self._contacts.append(contact)
 
 
 def _append_bit(prefix: str, bit: int):
@@ -194,8 +256,16 @@ class Node:
 
 
 class Contact:
-    def __init__(self, address: str, port: str, nodeid: NodeId, last_seen: datetime):
+    '''
+    Represents this peer's knowledge of another peer.
+    '''
+
+    def __init__(self, address, port, node_id):
         self.address = address
         self.port = port
-        self.nodeid = nodeid
-        self.last_seen = last_seen
+        self.node_id = node_id
+        self.last_seen = None
+        self.touch()
+
+    def touch(self):
+        self.last_seen = datetime.utcnow()
