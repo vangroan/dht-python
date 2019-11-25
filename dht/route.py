@@ -123,7 +123,7 @@ class RoutingTable:
         # Initial state is one k-bucket at the root.
         bucket = KBucket.default()
         bucket.add(Contact(None, None, owner_id))
-        self._root = bucket
+        self._root = Tree.create_leaf(bucket)
 
         # Maximum number of contacts allowed in a k-bucket.
         self._ksize = 20
@@ -140,10 +140,18 @@ class RoutingTable:
         Internal recursive insert method.
         '''
 
-        if isinstance(node, KBucket):
-            # Always split when encountering the owner node
-            if node.contains(self._owner_id):
+        if node.is_leaf:
+            if node.kbucket.contains(self._owner_id):
+                # Always split when encountering the owner node
                 pass
+            elif len(node.kbucket) >= self._ksize:
+                # k-bucket is full and needs to be split
+                pass
+            else:
+                node.kbucket.add(contact)
+        elif node.is_branch:
+            # Check which branch to recurse down
+            pass
 
     def _split(self, bucket):
         '''
@@ -153,23 +161,23 @@ class RoutingTable:
         (left, right) = bucket.split()
         return (left, right)
 
-    def find(self, nodeid: NodeId):
-        return self._find(nodeid, self._root)
+    def find(self, node_id: NodeId):
+        return self._find(node_id, self._root)
 
-    def _find(self, nodeid, node, level=0):
-        if isinstance(node, KBucket):
+    def _find(self, node_id, node, level=0):
+        if node.is_leaf:
             # Reached leaf
-            if len(node.contacts) > 0:
+            if len(node.kbucket.contacts) > 0:
                 # TODO: Return the most recently seen contact
-                return node.contacts[0]
+                return node.kbucket.contacts[0]
             else:
                 return None
-        elif isinstance(node, Node):
+        elif node.is_branch:
             # Determine down which path we should search
-            if nodeid.nth_bit(level) == 1:
-                return self._find(nodeid, node.left, level+1)
-            elif nodeid.nth_bit(level) == 0:
-                return self._find(nodeid, node.right, level+1)
+            if node_id.nth_bit(level) == 1:
+                return self._find(node_id, node.left, level+1)
+            elif node_id.nth_bit(level) == 0:
+                return self._find(node_id, node.right, level+1)
 
 
 class KBucket:
@@ -235,6 +243,9 @@ class KBucket:
         contact.touch()
         self._contacts.append(contact)
 
+    def __len__(self):
+        return len(self._contacts)
+
 
 def _append_bit(prefix: str, bit: int):
     '''Given a prefix in hex digest form, shift to the left and append the given
@@ -247,12 +258,42 @@ def _append_bit(prefix: str, bit: int):
     return '{:02x}'.format(i | b)
 
 
-class Node:
-    '''Branch node of binary tree.'''
+class Tree:
+    '''Binary tree node.'''
 
-    def __init__(self):
-        self.left = None
-        self.right = None
+    def __init__(self, kbucket, left, right):
+        self._l = left
+        self._r = right
+        self._kbucket = kbucket
+
+    @staticmethod
+    def create_leaf(kbucket):
+        if kbucket is None:
+            raise ValueError('kbucket is None')
+
+        return Tree(kbucket, None, None)
+
+    @staticmethod
+    def create_branch(left, right):
+        if left is None:
+            raise ValueError('left is None')
+
+        if right is None:
+            raise ValueError('right is None')
+
+        return KBucket(None, left, right)
+
+    @property
+    def is_leaf(self):
+        return self._kbucket is not None
+
+    @property
+    def is_branch(self):
+        return self._kbucket is None
+
+    @property
+    def kbucket(self):
+        return self._kbucket
 
 
 class Contact:
