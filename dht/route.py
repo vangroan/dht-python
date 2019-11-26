@@ -8,6 +8,9 @@ KEY_SIZE_BITS = 512
 KEY_SIZE_BYTES = 64
 
 
+class RoutingTableError(Exception): pass
+
+
 class NodeId(object):
     __slots__ = ('_data',)
 
@@ -146,7 +149,8 @@ class RoutingTable:
                 pass
             elif len(node.kbucket) >= self._ksize:
                 # k-bucket is full and needs to be split
-                pass
+                (left, right) = node.kbucket.split()
+                node.to_branch(left, right)
             else:
                 node.kbucket.add(contact)
         elif node.is_branch:
@@ -225,8 +229,8 @@ class KBucket:
         Splits the bucket into a two new buckets.
         '''
         mid = int((self._low + self._high) / 2)
-        left = KBucket(self._left, mid)
-        right = KBucket(mid, self._right)
+        left = KBucket(self._low, mid)
+        right = KBucket(mid, self._high)
         return (left, right)
 
     def contains(self, node_id):
@@ -248,7 +252,8 @@ class KBucket:
 
 
 def _append_bit(prefix: str, bit: int):
-    '''Given a prefix in hex digest form, shift to the left and append the given
+    '''
+    Given a prefix in hex digest form, shift to the left and append the given
     bit.
 
     Returns a new prefix in hex digest.
@@ -260,6 +265,8 @@ def _append_bit(prefix: str, bit: int):
 
 class Tree:
     '''Binary tree node.'''
+
+    __slots__ = ('_l', '_r', '_kbucket')
 
     def __init__(self, kbucket, left, right):
         self._l = left
@@ -281,7 +288,22 @@ class Tree:
         if right is None:
             raise ValueError('right is None')
 
-        return KBucket(None, left, right)
+        return Tree(None, left, right)
+    
+    def to_branch(self, left, right):
+        '''
+        Changes this leaf node to a branch node.
+
+        The k-bucket contained in this None will be discarded.
+
+        Will throw an exception if this node is already a branch.
+        '''
+        if not self.is_leaf:
+            raise RoutingTableError('cannot change binary tree node to branch, already branch')
+
+        self._kbucket = None
+        self._l = left
+        self._r = right
 
     @property
     def is_leaf(self):
@@ -290,6 +312,14 @@ class Tree:
     @property
     def is_branch(self):
         return self._kbucket is None
+
+    @property
+    def left(self):
+        return self._l
+    
+    @property
+    def right(self):
+        return self._r
 
     @property
     def kbucket(self):
