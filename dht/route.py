@@ -81,10 +81,7 @@ class NodeId(object):
         return (self._data >> (160 - 1 - n)) & 0x01
 
     def __xor__(self, rhs):
-        result = array('B', [0 for _ in range(KEY_SIZE_BYTES)])
-        for i in range(KEY_SIZE_BYTES):
-            result[i] = self._data[i] ^ rhs._data[i]  # pylint: disable=protected-access
-        return NodeId(result)
+        return NodeId(self._data ^ rhs._data)  # pylint: disable=protected-access
 
     def __repr__(self):
         return "%s('%s')" % (self.__class__.__name__, self.hex_digest)
@@ -96,9 +93,8 @@ class NodeId(object):
         if rhs is None:
             return False
 
-        for i in range(KEY_SIZE_BYTES):
-            if self._data[i] != rhs._data[i]:  # pylint: disable=protected-access
-                return False
+        if self._data != rhs._data:  # pylint: disable=protected-access
+            return False
 
         return True
 

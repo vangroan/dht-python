@@ -18,10 +18,10 @@ class IdTests(unittest.TestCase):
         del self.prev_key_size
 
     def test_xor(self):
-        id_1 = NodeId('00000001')
-        id_2 = NodeId('00000002')
+        id_1 = NodeId(0x01)
+        id_2 = NodeId(0x02)
 
-        self.assertEqual(NodeId('00000003'), id_1 ^ id_2)
+        self.assertEqual(NodeId(0x03), id_1 ^ id_2)
 
     def test_has_prefix(self):
         nodeid = NodeId(0xf550000000000000000000000000000000000000)
