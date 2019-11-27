@@ -35,7 +35,8 @@ class IdTests(unittest.TestCase):
         self.assertEqual(route._append_bit('6', 1), '0d')
 
     def test_nth_bit(self):
-        nodeid = NodeId('98765432')  # ‭10011000011101100101010000110010‬
+        # ‭10011000011101100101010000110010‬...
+        nodeid = NodeId(0x9876543200000000000000000000000000000000)
 
         self.assertEqual(nodeid.nth_bit(0), 1)
         self.assertEqual(nodeid.nth_bit(1), 0)

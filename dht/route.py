@@ -78,9 +78,7 @@ class NodeId(object):
         '''
         Return the n-th bit of this ID, starting from the most significant bit.
         '''
-        i = math.floor(n / 8)  # each element is an 8-bit byte
-        r = 7 - (n % 8)  # bit index inside byte element
-        return (self._data[i] >> r) & 0x01
+        return (self._data >> (160 - 1 - n)) & 0x01
 
     def __xor__(self, rhs):
         result = array('B', [0 for _ in range(KEY_SIZE_BYTES)])
