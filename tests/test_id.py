@@ -24,19 +24,18 @@ class IdTests(unittest.TestCase):
         self.assertEqual(NodeId('00000003'), id_1 ^ id_2)
 
     def test_has_prefix(self):
-        nodeid = NodeId('f5555555')
+        nodeid = NodeId(0xf550000000000000000000000000000000000000)
 
-        self.assertTrue(nodeid.has_prefix('f5'))
-        self.assertFalse(nodeid.has_prefix('aa'))
-        self.assertTrue(nodeid.has_prefix('f55555550000'))  # too long
+        self.assertTrue(nodeid.has_prefix(0xf5))
+        self.assertFalse(nodeid.has_prefix(0xaa))
 
     def test_append_bit(self):
         self.assertEqual(route._append_bit('a', 1), '15')
         self.assertEqual(route._append_bit('6', 0), '0c')
         self.assertEqual(route._append_bit('6', 1), '0d')
-    
+
     def test_nth_bit(self):
-        nodeid = NodeId('98765432') # ‭10011000011101100101010000110010‬
+        nodeid = NodeId('98765432')  # ‭10011000011101100101010000110010‬
 
         self.assertEqual(nodeid.nth_bit(0), 1)
         self.assertEqual(nodeid.nth_bit(1), 0)

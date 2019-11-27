@@ -8,7 +8,8 @@ KEY_SIZE_BITS = 512
 KEY_SIZE_BYTES = 64
 
 
-class RoutingTableError(Exception): pass
+class RoutingTableError(Exception):
+    pass
 
 
 class NodeId(object):
@@ -16,47 +17,36 @@ class NodeId(object):
 
     def __init__(self, data):
         if isinstance(data, str):
-            self._data = NodeId._parse(data)
-        elif not isinstance(data, array):
-            raise TypeError('Id data must be array of unsigned bytes')
-        else:
+            if str.startswith('0x', data):
+                # Hex
+                self._data = int(data, 16)
+            elif str.startswith('0b', data):
+                # Binary
+                self._data = int(data, 2)
+            else:
+                # Decimal
+                self._data = int(data, 10)
+        elif isinstance(data, int):
             self._data = data
+        else:
+            raise TypeError(
+                'node Id data must be an integer or string representation of an integer')
 
     @staticmethod
     def generate():
         '''
-        Generates a new random 512-bit ID, and formats it as a hex-digest.
+        Generates a new random 160-bit ID, and formats it as a hex-digest.
         '''
         # TODO: Replace with Crypto safe RNG
         import random
 
-        # 64 bytes * 8 bits = 512 bits
-        data = array('B', [random.randint(0, 0xFF)
-                           for _ in range(KEY_SIZE_BYTES)])  # Unsigned Bytes
-        return NodeId(data)
-
-    @staticmethod
-    def _parse(str_data):
-        '''
-        Given a hex digest string, return ID data in byte array form.
-        '''
-
-        # Each byte is represented by 2 hex digits
-        if len(str_data) != KEY_SIZE_BYTES * 2:
-            raise ValueError(
-                'hex digest is incorrect length to be %d-bit ID' % (KEY_SIZE_BYTES * 8))
-
-        result = array('B')
-
-        for i in range(KEY_SIZE_BYTES):
-            result.append(int(str_data[i:i+2], 16))
-
-        return result
+        # -1 because random is inclusive
+        return NodeId(random.randint(0, (2**160) - 1))
 
     @property
     def raw_data(self):
         '''
-        Byte array representation of internal data.
+        Integer representation of internal data.
         '''
         return deepcopy(self._data)
 
@@ -65,19 +55,22 @@ class NodeId(object):
         '''
         Hex digest representation of internal data.
         '''
-        return ''.join(('{:02x}'.format(b) for b in self._data))
+        return hex(self._data)
 
-    def has_prefix(self, prefix: str):
+    def has_prefix(self, prefix: int):
         '''
         Checks whether the node ID starts with the given prefix.
 
         The prefix must be supplied as a hex digest.
         '''
+        p = len(bin(prefix)) - 2  # bit count using binary - '0x'
         i, j = 0, 0
-        while i < len(prefix) and j < KEY_SIZE_BYTES:
-            if int(prefix[i:i+2], 16) != self._data[j]:
+        while i < p and j < 160:
+            a = prefix >> (p - 1 - i) & 1
+            b = (self._data >> (159 - j)) & 1
+            if a != b:
                 return False
-            i += 2
+            i += 1
             j += 1
         return True
 
@@ -289,7 +282,7 @@ class Tree:
             raise ValueError('right is None')
 
         return Tree(None, left, right)
-    
+
     def to_branch(self, left, right):
         '''
         Changes this leaf node to a branch node.
@@ -299,7 +292,8 @@ class Tree:
         Will throw an exception if this node is already a branch.
         '''
         if not self.is_leaf:
-            raise RoutingTableError('cannot change binary tree node to branch, already branch')
+            raise RoutingTableError(
+                'cannot change binary tree node to branch, already branch')
 
         self._kbucket = None
         self._l = left
@@ -316,7 +310,7 @@ class Tree:
     @property
     def left(self):
         return self._l
-    
+
     @property
     def right(self):
         return self._r
