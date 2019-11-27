@@ -20,9 +20,9 @@ class TestroutingTable(unittest.TestCase):
 
     def test_first_insert(self):
         '''Should split root node when only first bucket is present.'''
-        owner_id = NodeId('00000003')
+        owner_id = NodeId(0x03)
         table = RoutingTable(owner_id)
 
-        table.insert('127.0.0.1', '9001', NodeId('00000002'))
-        self.assertIsNotNone(table.find(owner_id), "routing table find operation did not return anything")
-        
+        table.insert('127.0.0.1', '9001', NodeId(0x02))
+        self.assertIsNotNone(table.find(
+            owner_id), "routing table find operation did not return anything")
