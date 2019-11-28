@@ -163,14 +163,6 @@ class RoutingTable:
                 # Left
                 self._insert(node.left, contact, level=level+1)
 
-    def _split(self, bucket):
-        '''
-        Accepts a k-bucket, splits it into two new buckets, distributes
-        the contacts correctly between them, and returns a new branch node.
-        '''
-        (left, right) = bucket.split()
-        return (left, right)
-
     def find(self, node_id: NodeId):
         '''
         Searches the routing table for a contact that matches the exact given
@@ -182,8 +174,8 @@ class RoutingTable:
         if node.is_leaf:
             # Reached leaf
             if node.kbucket.contacts:
-                # TODO: Return the most recently seen contact
-                return node.kbucket.contacts[0]
+                # Return the exact contact
+                return node.kbucket.get(node_id)
 
         elif node.is_branch:
             # Determine down which path we should search
