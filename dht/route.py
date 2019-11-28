@@ -1,6 +1,4 @@
 
-import math
-from array import array
 from datetime import datetime
 from copy import deepcopy
 
@@ -63,22 +61,22 @@ class NodeId(object):
 
         The prefix must be supplied as a hex digest.
         '''
-        p = len(bin(prefix)) - 2  # bit count using binary - '0x'
+        p_len = len(bin(prefix)) - 2  # bit count using binary - '0x'
         i, j = 0, 0
-        while i < p and j < 160:
-            a = prefix >> (p - 1 - i) & 1
-            b = (self._data >> (159 - j)) & 1
-            if a != b:
+        while i < p_len and j < 160:
+            a_bit = prefix >> (p_len - 1 - i) & 1
+            b_bit = (self._data >> (159 - j)) & 1
+            if a_bit != b_bit:
                 return False
             i += 1
             j += 1
         return True
 
-    def nth_bit(self, n: int):
+    def nth_bit(self, index: int):
         '''
         Return the n-th bit of this ID, starting from the most significant bit.
         '''
-        return (self._data >> (160 - 1 - n)) & 0x01
+        return (self._data >> (160 - 1 - index)) & 0x01
 
     def __xor__(self, rhs):
         return NodeId(self._data ^ rhs._data)  # pylint: disable=protected-access
@@ -133,16 +131,37 @@ class RoutingTable:
         if node.is_leaf:
             if node.kbucket.contains(self._owner_id):
                 # Always split when encountering the owner node
-                pass
+                (left, right) = node.kbucket.split()
+                node.to_branch(Tree.create_leaf(left), Tree.create_leaf(right))
+
+                # Handle the node again as a branch
+                self._insert(node, contact, level=level)
+
+            elif node.kbucket.contains(contact.node_id):
+                # Does the contact exist?
+                node.kbucket.get(contact.node_id).touch()
+
             elif len(node.kbucket) >= self._ksize:
                 # k-bucket is full and needs to be split
                 (left, right) = node.kbucket.split()
-                node.to_branch(left, right)
+                node.to_branch(Tree.create_leaf(left), Tree.create_leaf(right))
+
+                # Handle the node again as a branch
+                self._insert(node, contact, level=level)
+
             else:
                 node.kbucket.add(contact)
+
         elif node.is_branch:
             # Check which branch to recurse down
-            pass
+            bit = contact.node_id.nth_bit(level)
+
+            if bit == 0:
+                # Right
+                self._insert(node.right, contact, level=level+1)
+            elif bit == 1:
+                # Left
+                self._insert(node.left, contact, level=level+1)
 
     def _split(self, bucket):
         '''
@@ -153,22 +172,27 @@ class RoutingTable:
         return (left, right)
 
     def find(self, node_id: NodeId):
+        '''
+        Searches the routing table for a contact that matches the exact given
+        node id.
+        '''
         return self._find(node_id, self._root)
 
     def _find(self, node_id, node, level=0):
         if node.is_leaf:
             # Reached leaf
-            if len(node.kbucket.contacts) > 0:
+            if node.kbucket.contacts:
                 # TODO: Return the most recently seen contact
                 return node.kbucket.contacts[0]
-            else:
-                return None
+
         elif node.is_branch:
             # Determine down which path we should search
             if node_id.nth_bit(level) == 1:
                 return self._find(node_id, node.left, level+1)
             elif node_id.nth_bit(level) == 0:
                 return self._find(node_id, node.right, level+1)
+
+        return None
 
 
 class KBucket:
@@ -211,6 +235,9 @@ class KBucket:
     def contacts(self):
         return self._contacts
 
+    def in_range(self, node_id):
+        return self._low <= node_id._data < self._high  # pylint: disable=protected-access
+
     def split(self):
         '''
         Splits the bucket into a two new buckets.
@@ -218,6 +245,17 @@ class KBucket:
         mid = int((self._low + self._high) / 2)
         left = KBucket(self._low, mid)
         right = KBucket(mid, self._high)
+
+        # Move contents into the appropriate buckets
+        for contact in self._contacts:
+            if left.in_range(contact.node_id):
+                left.add(contact)
+            elif left.in_range(contact.node_id):
+                right.add(contact)
+
+        # Contacts have moved
+        self._contacts.clear()
+
         return (left, right)
 
     def contains(self, node_id):
@@ -234,6 +272,12 @@ class KBucket:
         contact.touch()
         self._contacts.append(contact)
 
+    def get(self, node_id):
+        for contact in self._contacts:
+            if contact.node_id == node_id:
+                return contact
+        return None
+
     def __len__(self):
         return len(self._contacts)
 
@@ -246,8 +290,8 @@ def _append_bit(prefix: str, bit: int):
     Returns a new prefix in hex digest.
     '''
     i = int(prefix, 16) << 1
-    b = bit & 0x01  # mask out potential junk
-    return '{:02x}'.format(i | b)
+    masked_bit = bit & 0x01  # mask out potential junk
+    return '{:02x}'.format(i | masked_bit)
 
 
 class Tree:
