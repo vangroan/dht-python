@@ -10,6 +10,10 @@ class RoutingTableError(Exception):
     pass
 
 
+class BinaryTreeError(Exception):
+    pass
+
+
 class NodeId(object):
     __slots__ = ('_data',)
 
@@ -109,9 +113,9 @@ class RoutingTable:
         self._owner_id = owner_id
 
         # Initial state is one k-bucket at the root.
-        bucket = KBucket.default()
+        bucket = KBucket()
         bucket.add(Contact(None, None, owner_id))
-        self._root = Tree.create_leaf(bucket)
+        self._root = Tree.create_leaf((0, 2**160), bucket)
 
         # Maximum number of contacts allowed in a k-bucket.
         self._ksize = 20
@@ -131,8 +135,7 @@ class RoutingTable:
         if node.is_leaf:
             if node.kbucket.contains(self._owner_id):
                 # Always split when encountering the owner node
-                (left, right) = node.kbucket.split()
-                node.to_branch(Tree.create_leaf(left), Tree.create_leaf(right))
+                node.split()
 
                 # Handle the node again as a branch
                 self._insert(node, contact, level=level)
@@ -143,8 +146,7 @@ class RoutingTable:
 
             elif len(node.kbucket) >= self._ksize:
                 # k-bucket is full and needs to be split
-                (left, right) = node.kbucket.split()
-                node.to_branch(Tree.create_leaf(left), Tree.create_leaf(right))
+                node.split()
 
                 # Handle the node again as a branch
                 self._insert(node, contact, level=level)
@@ -195,25 +197,8 @@ class KBucket:
     '''
     __slots__ = ('_low', '_high', '_contacts')
 
-    def __init__(self, low, high):
-        self._low = min(low, high)
-        self._high = max(low, high)
+    def __init__(self):
         self._contacts = []
-
-    @staticmethod
-    def default():
-        '''
-        Creates a default bucket that covers the whole key space.
-        '''
-        return KBucket(2 ** 0, 2 ** 160)
-
-    @property
-    def low(self):
-        return self._low
-
-    @property
-    def high(self):
-        return self._high
 
     @property
     def depth(self):
@@ -226,29 +211,6 @@ class KBucket:
     @property
     def contacts(self):
         return self._contacts
-
-    def in_range(self, node_id):
-        return self._low <= node_id._data < self._high  # pylint: disable=protected-access
-
-    def split(self):
-        '''
-        Splits the bucket into a two new buckets.
-        '''
-        mid = int((self._low + self._high) / 2)
-        left = KBucket(self._low, mid)
-        right = KBucket(mid, self._high)
-
-        # Move contents into the appropriate buckets
-        for contact in self._contacts:
-            if left.in_range(contact.node_id):
-                left.add(contact)
-            elif left.in_range(contact.node_id):
-                right.add(contact)
-
-        # Contacts have moved
-        self._contacts.clear()
-
-        return (left, right)
 
     def contains(self, node_id):
         '''
@@ -270,6 +232,12 @@ class KBucket:
                 return contact
         return None
 
+    def sort(self):
+        '''
+        Sorts the k-bucket according to contact's last seen timestamp.
+        '''
+        raise NotImplementedError()
+
     def __len__(self):
         return len(self._contacts)
 
@@ -289,29 +257,42 @@ def _append_bit(prefix: str, bit: int):
 class Tree:
     '''Binary tree node.'''
 
-    __slots__ = ('_l', '_r', '_kbucket')
+    __slots__ = ('_low', '_high', '_l', '_r', '_kbucket')
 
-    def __init__(self, kbucket, left, right):
-        self._l = left
-        self._r = right
+    def __init__(self, id_range, kbucket=None, branches=None):
+        (low, high) = id_range
+        self._low = min(low, high)
+        self._high = max(low, high)
+
+        if branches is not None:
+            (left, right) = branches
+            self._l = left
+            self._r = right
+        else:
+            self._l = None
+            self._r = None
+
         self._kbucket = kbucket
 
     @staticmethod
-    def create_leaf(kbucket):
+    def create_leaf(id_range, kbucket):
+        if id_range is None:
+            raise ValueError('id_range is None')
+
         if kbucket is None:
             raise ValueError('kbucket is None')
 
-        return Tree(kbucket, None, None)
+        return Tree(id_range, kbucket=kbucket)
 
     @staticmethod
-    def create_branch(left, right):
-        if left is None:
-            raise ValueError('left is None')
+    def create_branch(id_range, branches):
+        if id_range is None:
+            raise ValueError('id_range is None')
 
-        if right is None:
-            raise ValueError('right is None')
+        if branches is None:
+            raise ValueError('branches is None')
 
-        return Tree(None, left, right)
+        return Tree(id_range, branches=branches)
 
     def to_branch(self, left, right):
         '''
@@ -331,23 +312,81 @@ class Tree:
 
     @property
     def is_leaf(self):
+        '''
+        Returns True if the tree contains a k-bucket.
+        '''
         return self._kbucket is not None
 
     @property
     def is_branch(self):
+        '''
+        Returns True if the tree branches off into two other trees.
+        '''
         return self._kbucket is None
 
     @property
+    def low(self):
+        return self._low
+
+    @property
+    def high(self):
+        return self._high
+
+    @property
     def left(self):
+        '''
+        Left side tree of this branch.
+
+        Returns None if this tree is a leaf.
+        '''
         return self._l
 
     @property
     def right(self):
+        '''
+        Right side tree of this branch.
+
+        Returns None if this tree is a leaf.
+        '''
         return self._r
 
     @property
     def kbucket(self):
+        '''
+        Bucket of contacts in this leaf tree.
+
+        Returns None if this tree is a branch.
+        '''
         return self._kbucket
+
+    def in_range(self, node_id):
+        '''
+        Indicates whether the given node id is in this tree's id range.
+        '''
+        return self._low <= node_id._data < self._high  # pylint: disable=protected-access
+
+    def split(self):
+        '''
+        Splits this leaf into a branch.
+        '''
+        if self.is_branch:
+            raise BinaryTreeError('cannot split branch')
+
+        mid = int((self._low + self._high) / 2)
+        left = Tree.create_leaf((self._low, mid), KBucket())
+        right = Tree.create_leaf((mid, self._high), KBucket())
+
+        # Move contents into the appropriate buckets
+        for contact in self.kbucket.contacts:
+            if left.in_range(contact.node_id):
+                left.kbucket.add(contact)
+            elif left.in_range(contact.node_id):
+                right.kbucket.add(contact)
+
+        # Contacts have moved
+        self.kbucket.contacts.clear()
+
+        self.to_branch(left, right)
 
 
 class Contact:
