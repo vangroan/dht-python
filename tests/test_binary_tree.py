@@ -20,9 +20,9 @@ class TestBinaryTree(unittest.TestCase):
         self.assertEqual(right, branch.right)
 
     def test_to_branch(self):
-        '''
+        """
         Should convert a leaf tree to a branch tree.
-        '''
+        """
         # assume
         tree = Tree.create_leaf((0, 2**160), KBucket())
 
@@ -35,7 +35,7 @@ class TestBinaryTree(unittest.TestCase):
         self.assertIsNotNone(tree.right)
 
     def test_to_branch_error(self):
-        '''
+        """
         Should raise an exception when tree is already a branch.
-        '''
+        """
         self.skipTest('TODO')

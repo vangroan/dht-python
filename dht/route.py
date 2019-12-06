@@ -2,9 +2,6 @@
 from datetime import datetime
 from copy import deepcopy
 
-KEY_SIZE_BITS = 512
-KEY_SIZE_BYTES = 64
-
 
 class RoutingTableError(Exception):
     pass
@@ -36,9 +33,9 @@ class NodeId(object):
 
     @staticmethod
     def generate():
-        '''
+        """
         Generates a new random 160-bit ID, and formats it as a hex-digest.
-        '''
+        """
         # TODO: Replace with Crypto safe RNG
         import random
 
@@ -47,24 +44,24 @@ class NodeId(object):
 
     @property
     def raw_data(self):
-        '''
+        """
         Integer representation of internal data.
-        '''
+        """
         return deepcopy(self._data)
 
     @property
     def hex_digest(self):
-        '''
+        """
         Hex digest representation of internal data.
-        '''
+        """
         return hex(self._data)
 
     def has_prefix(self, prefix: int):
-        '''
+        """
         Checks whether the node ID starts with the given prefix.
 
         The prefix must be supplied as a hex digest.
-        '''
+        """
         p_len = len(bin(prefix)) - 2  # bit count using binary - '0x'
         i, j = 0, 0
         while i < p_len and j < 160:
@@ -77,9 +74,9 @@ class NodeId(object):
         return True
 
     def nth_bit(self, index: int):
-        '''
+        """
         Return the n-th bit of this ID, starting from the most significant bit.
-        '''
+        """
         return (self._data >> (160 - 1 - index)) & 0x01
 
     def __xor__(self, rhs):
@@ -99,9 +96,6 @@ class NodeId(object):
             return False
 
         return True
-
-
-ROOT_INDEX = 0
 
 
 class RoutingTable:
@@ -124,13 +118,13 @@ class RoutingTable:
         # between contacts inside the same bucket.
         self._depth = 5
 
-    def insert(self, address, port, nodeid):
-        self._insert(self._root, Contact(address, port, nodeid))
+    def insert(self, address, port, node_id):
+        self._insert(self._root, Contact(address, port, node_id))
 
     def _insert(self, node, contact, level=0):
-        '''
+        """
         Internal recursive insert method.
-        '''
+        """
 
         if node.is_leaf:
             if node.kbucket.contains(self._owner_id):
@@ -166,10 +160,10 @@ class RoutingTable:
                 self._insert(node.left, contact, level=level+1)
 
     def find(self, node_id: NodeId):
-        '''
+        """
         Searches the routing table for a contact that matches the exact given
         node id.
-        '''
+        """
         return self._find(node_id, self._root)
 
     def _find(self, node_id, node, level=0):
@@ -190,11 +184,11 @@ class RoutingTable:
 
 
 class KBucket:
-    '''
+    """
     Container for node contacts.
 
     Leaf node of binary tree.
-    '''
+    """
     __slots__ = ('_low', '_high', '_contacts')
 
     def __init__(self):
@@ -202,10 +196,10 @@ class KBucket:
 
     @property
     def depth(self):
-        '''
+        """
         Bucket depth is defined as the count of prefix bits that all contacts
         in the bucket share.
-        '''
+        """
         raise NotImplementedError()
 
     @property
@@ -213,10 +207,10 @@ class KBucket:
         return self._contacts
 
     def contains(self, node_id):
-        '''
+        """
         Returns True if this bucket contains an exact match of the
         given node ID.
-        '''
+        """
         for contact in self._contacts:
             if node_id == contact.node_id:
                 return True
@@ -233,9 +227,9 @@ class KBucket:
         return None
 
     def sort(self):
-        '''
+        """
         Sorts the k-bucket according to contact's last seen timestamp.
-        '''
+        """
         raise NotImplementedError()
 
     def __len__(self):
@@ -243,19 +237,19 @@ class KBucket:
 
 
 def _append_bit(prefix: str, bit: int):
-    '''
+    """
     Given a prefix in hex digest form, shift to the left and append the given
     bit.
 
     Returns a new prefix in hex digest.
-    '''
+    """
     i = int(prefix, 16) << 1
     masked_bit = bit & 0x01  # mask out potential junk
     return '{:02x}'.format(i | masked_bit)
 
 
 class Tree:
-    '''Binary tree node.'''
+    """Binary tree node."""
 
     __slots__ = ('_low', '_high', '_l', '_r', '_kbucket')
 
@@ -295,13 +289,13 @@ class Tree:
         return Tree(id_range, branches=branches)
 
     def to_branch(self, left, right):
-        '''
+        """
         Changes this leaf node to a branch node.
 
         The k-bucket contained in this None will be discarded.
 
         Will throw an exception if this node is already a branch.
-        '''
+        """
         if not self.is_leaf:
             raise RoutingTableError(
                 'cannot change binary tree node to branch, already branch')
@@ -312,16 +306,16 @@ class Tree:
 
     @property
     def is_leaf(self):
-        '''
+        """
         Returns True if the tree contains a k-bucket.
-        '''
+        """
         return self._kbucket is not None
 
     @property
     def is_branch(self):
-        '''
+        """
         Returns True if the tree branches off into two other trees.
-        '''
+        """
         return self._kbucket is None
 
     @property
@@ -334,41 +328,41 @@ class Tree:
 
     @property
     def left(self):
-        '''
+        """
         Left side tree of this branch.
 
         Returns None if this tree is a leaf.
-        '''
+        """
         return self._l
 
     @property
     def right(self):
-        '''
+        """
         Right side tree of this branch.
 
         Returns None if this tree is a leaf.
-        '''
+        """
         return self._r
 
     @property
     def kbucket(self):
-        '''
+        """
         Bucket of contacts in this leaf tree.
 
         Returns None if this tree is a branch.
-        '''
+        """
         return self._kbucket
 
     def in_range(self, node_id):
-        '''
+        """
         Indicates whether the given node id is in this tree's id range.
-        '''
+        """
         return self._low <= node_id._data < self._high  # pylint: disable=protected-access
 
     def split(self):
-        '''
+        """
         Splits this leaf into a branch.
-        '''
+        """
         if self.is_branch:
             raise BinaryTreeError('cannot split branch')
 
@@ -390,9 +384,9 @@ class Tree:
 
 
 class Contact:
-    '''
+    """
     Represents this peer's knowledge of another peer.
-    '''
+    """
 
     def __init__(self, address, port, node_id):
         self.address = address
