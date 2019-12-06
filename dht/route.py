@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from copy import deepcopy
 
@@ -12,6 +11,18 @@ class BinaryTreeError(Exception):
 
 
 class NodeId(object):
+    """
+    Identifier for content and peer nodes.
+
+    A node id is represented by a 160-bit number. For content, an id is the SHA-1 hash of it's bytes.
+
+    Create an id from an existing hex digest:
+    >>> NodeId('0x356a192b7913b04c54574d18c28d46e6395428ab')
+
+    Generate a random id, for use in a peer node:
+    >>> NodeId.generate()
+    """
+
     __slots__ = ('_data',)
 
     def __init__(self, data):
@@ -40,12 +51,14 @@ class NodeId(object):
         import random
 
         # -1 because random is inclusive
-        return NodeId(random.randint(0, (2**160) - 1))
+        return NodeId(random.randint(0, (2 ** 160) - 1))
 
     @property
     def raw_data(self):
         """
         Integer representation of internal data.
+
+        :return: A big integer.
         """
         return deepcopy(self._data)
 
@@ -56,11 +69,11 @@ class NodeId(object):
         """
         return hex(self._data)
 
-    def has_prefix(self, prefix: int):
+    def has_prefix(self, prefix):
         """
         Checks whether the node ID starts with the given prefix.
 
-        The prefix must be supplied as a hex digest.
+        The prefix must be supplied as an integer.
         """
         p_len = len(bin(prefix)) - 2  # bit count using binary - '0x'
         i, j = 0, 0
@@ -73,7 +86,7 @@ class NodeId(object):
             j += 1
         return True
 
-    def nth_bit(self, index: int):
+    def nth_bit(self, index):
         """
         Return the n-th bit of this ID, starting from the most significant bit.
         """
@@ -109,7 +122,7 @@ class RoutingTable:
         # Initial state is one k-bucket at the root.
         bucket = KBucket()
         bucket.add(Contact(None, None, owner_id))
-        self._root = Tree.create_leaf((0, 2**160), bucket)
+        self._root = Tree.create_leaf((0, 2 ** 160), bucket)
 
         # Maximum number of contacts allowed in a k-bucket.
         self._ksize = 20
@@ -119,6 +132,13 @@ class RoutingTable:
         self._depth = 5
 
     def insert(self, address, port, node_id):
+        """
+        Inserts a contact into the routing table.
+
+        :param address: IP address as string.
+        :param port: Port as integer.
+        :param node_id: Identifier of the node.
+        """
         self._insert(self._root, Contact(address, port, node_id))
 
     def _insert(self, node, contact, level=0):
@@ -150,16 +170,12 @@ class RoutingTable:
 
         elif node.is_branch:
             # Check which branch to recurse down
-            bit = contact.node_id.nth_bit(level)
+            if node.left.in_range(contact.node_id):
+                self._insert(node.left, contact, level=level + 1)
+            elif node.right.in_range(contact.node_id):
+                self._insert(node.right, contact, level=level + 1)
 
-            if bit == 0:
-                # Right
-                self._insert(node.right, contact, level=level+1)
-            elif bit == 1:
-                # Left
-                self._insert(node.left, contact, level=level+1)
-
-    def find(self, node_id: NodeId):
+    def find(self, node_id):
         """
         Searches the routing table for a contact that matches the exact given
         node id.
@@ -175,10 +191,10 @@ class RoutingTable:
 
         elif node.is_branch:
             # Determine down which path we should search
-            if node_id.nth_bit(level) == 1:
-                return self._find(node_id, node.left, level+1)
-            elif node_id.nth_bit(level) == 0:
-                return self._find(node_id, node.right, level+1)
+            if node.left.in_range(node_id):
+                self._find(node_id, node.left, level=level + 1)
+            elif node.right.in_range(node_id):
+                self._find(node_id, node.right, level=level + 1)
 
         return None
 
@@ -189,7 +205,7 @@ class KBucket:
 
     Leaf node of binary tree.
     """
-    __slots__ = ('_low', '_high', '_contacts')
+    __slots__ = ('_contacts',)
 
     def __init__(self):
         self._contacts = []
@@ -234,18 +250,6 @@ class KBucket:
 
     def __len__(self):
         return len(self._contacts)
-
-
-def _append_bit(prefix: str, bit: int):
-    """
-    Given a prefix in hex digest form, shift to the left and append the given
-    bit.
-
-    Returns a new prefix in hex digest.
-    """
-    i = int(prefix, 16) << 1
-    masked_bit = bit & 0x01  # mask out potential junk
-    return '{:02x}'.format(i | masked_bit)
 
 
 class Tree:

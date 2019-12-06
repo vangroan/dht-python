@@ -24,11 +24,6 @@ class IdTests(unittest.TestCase):
         self.assertTrue(node_id.has_prefix(0xf5))
         self.assertFalse(node_id.has_prefix(0xaa))
 
-    def test_append_bit(self):
-        self.assertEqual(route._append_bit('a', 1), '15')
-        self.assertEqual(route._append_bit('6', 0), '0c')
-        self.assertEqual(route._append_bit('6', 1), '0d')
-
     def test_nth_bit(self):
         # ‭10011000011101100101010000110010‬...
         node_id = NodeId(0x9876543200000000000000000000000000000000)
