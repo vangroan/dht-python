@@ -8,8 +8,8 @@ from dht.route import Tree, KBucket
 class TestBinaryTree(unittest.TestCase):
 
     def test_create(self):
-        bucket = KBucket.default()
-        leaf = Tree.create_leaf(bucket)
+        bucket = KBucket()
+        leaf = Tree.create_leaf((0, 2**160), bucket)
         self.assertIsNotNone(leaf)
         self.assertEqual(bucket, leaf.kbucket)
 
@@ -24,17 +24,16 @@ class TestBinaryTree(unittest.TestCase):
         Should convert a leaf tree to a branch tree.
         '''
         # assume
-        tree = Tree.create_leaf(KBucket.default())
+        tree = Tree.create_leaf((0, 2**160), KBucket())
 
         # act
-        (left, right) = tree.kbucket.split()
-        tree.to_branch(left, right)
+        tree.split()
 
         # assert
         self.assertIsNone(tree.kbucket)
         self.assertIsNotNone(tree.left)
         self.assertIsNotNone(tree.right)
-    
+
     def test_to_branch_error(self):
         '''
         Should raise an exception when tree is already a branch.
