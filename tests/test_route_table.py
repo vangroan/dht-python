@@ -5,24 +5,19 @@ from dht import route
 from dht.route import NodeId, RoutingTable
 
 
-class TestroutingTable(unittest.TestCase):
-    '''
+class TestRoutingTable(unittest.TestCase):
+    """
     Test basic usage of the routing table.
-    '''
+    """
 
     def setUp(self):
-        self.prev_key_size = route.KEY_SIZE_BYTES
-
-        # Small key size for testing purposes
-        route.KEY_SIZE_BYTES = 4
+        pass
 
     def tearDown(self):
-        # restore
-        route.KEY_SIZE_BYTES = self.prev_key_size
-        del self.prev_key_size
+        pass
 
     def test_first_insert(self):
-        '''Should split root node when only first bucket is present.'''
+        """Should split root node when only first bucket is present."""
         owner_id = NodeId(0b0011)
         table = RoutingTable(owner_id)
 
