@@ -192,9 +192,9 @@ class RoutingTable:
         elif node.is_branch:
             # Determine down which path we should search
             if node.left.in_range(node_id):
-                self._find(node_id, node.left, level=level + 1)
+                return self._find(node_id, node.left, level=level + 1)
             elif node.right.in_range(node_id):
-                self._find(node_id, node.right, level=level + 1)
+                return self._find(node_id, node.right, level=level + 1)
 
         return None
 
@@ -378,7 +378,7 @@ class Tree:
         for contact in self.kbucket.contacts:
             if left.in_range(contact.node_id):
                 left.kbucket.add(contact)
-            elif left.in_range(contact.node_id):
+            elif right.in_range(contact.node_id):
                 right.kbucket.add(contact)
 
         # Contacts have moved
