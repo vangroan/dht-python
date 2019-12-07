@@ -1,8 +1,7 @@
 
 import unittest
 
-from dht import route
-from dht.route import Tree, KBucket
+from dht.route import Tree, KBucket, BinaryTreeError
 
 
 class TestBinaryTree(unittest.TestCase):
@@ -44,4 +43,14 @@ class TestBinaryTree(unittest.TestCase):
         """
         Should raise an exception when tree is already a branch.
         """
-        self.skipTest('TODO')
+        # assume
+        (left, right) = (Tree.create_leaf((0, 2 ** 80), KBucket()), Tree.create_leaf((2 ** 80, 2 ** 160), KBucket()))
+        branch = Tree.create_branch((0, 2 ** 160), (left, right))
+
+        # act
+        with self.assertRaises(BinaryTreeError) as context:
+            branch.split()
+
+        # assert
+        ex = context.exception
+        self.assertTrue(type(ex) is BinaryTreeError, "Exception is not binary tree exception")
