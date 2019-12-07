@@ -119,7 +119,8 @@ class RoutingTable:
         # to split buckets.
         self._owner_id = owner_id
 
-        # Initial state is one k-bucket at the root.
+        # Initial state is one k-bucket at the root, which
+        # covers the whole possible node id space.
         bucket = KBucket()
         bucket.add(Contact(None, None, owner_id))
         self._root = Tree.create_leaf((0, 2 ** 160), bucket)
