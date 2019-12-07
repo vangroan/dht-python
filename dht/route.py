@@ -167,6 +167,7 @@ class RoutingTable:
 
             else:
                 node.kbucket.add(contact)
+                node.kbucket.sort()
 
         elif node.is_branch:
             # Check which branch to recurse down
@@ -246,7 +247,7 @@ class KBucket:
         """
         Sorts the k-bucket according to contact's last seen timestamp.
         """
-        raise NotImplementedError()
+        self._contacts = sorted(self._contacts, key=lambda contact: contact.last_seen)
 
     def __len__(self):
         return len(self._contacts)
