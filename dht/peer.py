@@ -26,14 +26,14 @@ class PeerServer(DatagramServer):
         """
         super().__init__('%s:%s' % (address, port))
 
-        self._id = NodeId.generate() if node_id is None else node_id
+        self._node_id = NodeId.generate() if node_id is None else node_id
         self._bootstrap = list(bootstrap)
-        print('Starting Peer %s' % repr(self._id))
+        print('Starting Peer %s' % repr(self._node_id))
 
     @property
     def id(self):
         """Unique identifier for this node."""
-        return self._id
+        return self._node_id
 
     def bootstrap(self, nodes):
         """
