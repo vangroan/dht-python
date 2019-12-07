@@ -1,4 +1,3 @@
-
 from dht.route import NodeId
 from gevent.server import DatagramServer
 
@@ -10,7 +9,7 @@ class PeerServer(DatagramServer):
     Acts as the primary interface to this peer node.
     """
 
-    def __init__(self, address, port, id=None, bootstrap=[]):
+    def __init__(self, address, port, node_id=None, bootstrap=[]):
         """
         Creates a new peer, with the given settings.
 
@@ -20,14 +19,14 @@ class PeerServer(DatagramServer):
 
         :param address: IP address to bind to
         :param port: Port to bind to
-        :param id: Optional Node identifier, if this
+        :param node_id: Optional Node identifier, if this
                    peer already has a persisted identity.
         :param bootstrap: A list of (ip, port) tuples used
                           as an entry point into the network.
         """
         super().__init__('%s:%s' % (address, port))
 
-        self._id = NodeId.generate() if id is None else id
+        self._id = NodeId.generate() if node_id is None else node_id
         self._bootstrap = list(bootstrap)
         print('Starting Peer %s' % repr(self._id))
 
