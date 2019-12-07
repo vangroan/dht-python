@@ -15,7 +15,9 @@ class TestRoutingTable(unittest.TestCase):
         pass
 
     def test_first_insert(self):
-        """Should split root node when only first bucket is present."""
+        """
+        Should split root node when only first bucket is present.
+        """
         owner_id = NodeId(0xffffffffffffffffffffffffffffffffffffffff)
         table = RoutingTable(owner_id)
 
@@ -26,3 +28,10 @@ class TestRoutingTable(unittest.TestCase):
             owner_id), "routing table find operation did not return anything")
         self.assertEqual('9001', table.find(NodeId(0b0010)).port)
         self.assertEqual('9002', table.find(NodeId(0b0100)).port)
+
+    def test_boundary_insert(self):
+        """
+        Should correctly insert and find contacts on the mid-point id boundary.
+        """
+        # TODO: Write test that will ensure an id can be inserted next to the midpoint boundary, and work correctly.
+        self.skipTest("TODO")
