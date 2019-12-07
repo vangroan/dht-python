@@ -1,4 +1,3 @@
-
 import unittest
 
 from dht.route import Tree, KBucket, BinaryTreeError
@@ -11,13 +10,13 @@ class TestBinaryTree(unittest.TestCase):
         Should create trees as either leaves or branches.
         """
         bucket = KBucket()
-        leaf = Tree.create_leaf((0, 2**160), bucket)
+        leaf = Tree.create_leaf((0, 2 ** 160), bucket)
         self.assertIsNotNone(leaf)
         self.assertEqual(bucket, leaf.kbucket)
 
         (a, b) = (KBucket(), KBucket())
-        (left, right) = (Tree.create_leaf((0, 2**80), a), Tree.create_leaf((2**80, 2**160), b))
-        branch = Tree.create_branch((0, 2**160), (left, right))
+        (left, right) = (Tree.create_leaf((0, 2 ** 80), a), Tree.create_leaf((2 ** 80, 2 ** 160), b))
+        branch = Tree.create_branch((0, 2 ** 160), (left, right))
         self.assertIsNotNone(branch)
         self.assertEqual(left, branch.left)
         self.assertEqual(left.kbucket, a)
@@ -29,7 +28,7 @@ class TestBinaryTree(unittest.TestCase):
         Should convert a leaf tree to a branch tree.
         """
         # assume
-        tree = Tree.create_leaf((0, 2**160), KBucket())
+        tree = Tree.create_leaf((0, 2 ** 160), KBucket())
 
         # act
         tree.split()

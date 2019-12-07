@@ -1,6 +1,5 @@
-
 import unittest
-from dht import route
+
 from dht.route import NodeId
 
 
