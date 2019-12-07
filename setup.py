@@ -23,4 +23,7 @@ setup(
     version=get_version(),
     packages=find_packages(),
     install_requirements=get_requirements(),
+    extras_require={
+        'test': ['pytest', 'pytest-cov']
+    }
 )
