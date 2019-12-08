@@ -56,6 +56,17 @@ class MessageDeclareError(Exception):
 
 
 class MessageMeta(ABCMeta):
+    """
+    Meta class for message types.
+
+    Implements some of the magic that make marshalling and unmarshalling ergonomic. Class level
+    fields on concrete message types are collected into an ordered collection.
+
+    Classes that inherit from AbstractMessage are stored in a registry that can be used as
+    a lookup, from the value in `__message__` to the class.
+
+    Inherits from ABCMeta so that AbstractMeta would be an abstract class.
+    """
     _message_types = dict()
 
     def __new__(mcs, clsname, bases, attrs):
