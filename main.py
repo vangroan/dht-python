@@ -1,14 +1,13 @@
-
 import gevent
+import gevent.event
 
 from dht.peer import PeerServer
-from dht.route import NodeId
+from dht.utils import create_logger
 
 
-if __name__ == '__main__':
-    print('Starting up')
-
-    id = NodeId.generate()
+def main():
+    logger = create_logger(__name__)
+    logger.info("Starting up")
 
     # Stop gevent from outputting exception
     # details on keyboard interrupt.
@@ -19,14 +18,18 @@ if __name__ == '__main__':
 
     try:
         peer.start()
-        print('Bootstrap here')
+        logger.debug("TODO: Bootstrap here")
         cancel.wait()
     except KeyboardInterrupt:
-        print('User requested stop')
+        logger.info("User requested stop")
     finally:
-        print('Stopping')
+        logger.info("Stopping")
         peer.stop(timeout=1)
 
         # Currently this doesn't do anything, as the
         # cancel event is just used to stop main() execution.
         cancel.set()
+
+
+if __name__ == '__main__':
+    main()

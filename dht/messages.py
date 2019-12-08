@@ -38,12 +38,19 @@ class MessageDeclareError(Exception):
 
 
 class MessageMeta(ABCMeta):
+    _message_types = dict()
+
     def __new__(mcs, clsname, bases, attrs):
+        # Attributes dictionary is cleared after class is declared later.
+        message_enum = None
+
         # Validate that message enum is provided.
         if clsname != 'AbstractMessage':
             # Field not expected on abstract class
             if '__message__' not in attrs:
                 raise MessageDeclareError("message type %s must have a '__message__' field defined" % clsname)
+
+            message_enum = attrs['__message__']
 
         # Find message fields from class and add to class level
         # registry. Used for marshalling.
@@ -55,7 +62,25 @@ class MessageMeta(ABCMeta):
             if isinstance(attrs[key], MessageField):
                 attrs['__fields__'][key] = attrs[key]
 
-        return super(MessageMeta, mcs).__new__(mcs, clsname, bases, attrs)
+        # Declare class.
+        cls = super(MessageMeta, mcs).__new__(mcs, clsname, bases, attrs)
+
+        # Allow lookup of message enum marker to concrete message class.
+        if message_enum is not None:
+            mcs._message_types[message_enum] = cls
+
+        return cls
+
+    @classmethod
+    def message_types(mcs):
+        return mcs._message_types
+
+    @classmethod
+    def flush_message_types(mcs):
+        """
+        Clears all message classes from the internal registry.
+        """
+        mcs._message_types.clear()
 
 
 class AbstractMessage(object, metaclass=MessageMeta):
@@ -94,6 +119,17 @@ class AbstractMessage(object, metaclass=MessageMeta):
     @classmethod
     def unmarshal(cls, byte_data):
         pass
+
+    @classmethod
+    def fullname(cls):
+        """
+        Helper for printing the module name along with the class' name.
+        """
+        module = cls.__module__
+        if module is None or module == str.__class__.__module__:
+            return cls.__name__  # Avoid reporting __builtin__
+        else:
+            return module + '.' + cls.__name__
 
 
 class MessageHeader(object):
