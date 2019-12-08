@@ -5,8 +5,8 @@ Common message classes.
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from copy import deepcopy
-from uuid import uuid4
 from datetime import datetime
+from uuid import uuid4
 
 
 # TODO: Remember endianess
@@ -41,7 +41,7 @@ class Integer(MessageField):
         return val.to_bytes(4, 'big')
 
     def unmarshal(self, data):
-        return int.from_bytes(data, 'big')
+        return int.from_bytes(data[:4], 'big'), 4
 
 
 # =============================================================================
@@ -55,7 +55,7 @@ class MessageDeclareError(Exception):
     pass
 
 
-class MessageMeta(ABCMeta):
+class MessageMeta(type):
     """
     Meta class for message types.
 
@@ -74,7 +74,7 @@ class MessageMeta(ABCMeta):
         message_enum = None
 
         # Validate that message enum is provided.
-        if clsname != 'AbstractMessage':
+        if clsname != 'Message':
             # Field not expected on abstract class
             if '__message__' not in attrs:
                 raise MessageDeclareError("message type %s must have a '__message__' field defined" % clsname)
@@ -112,7 +112,7 @@ class MessageMeta(ABCMeta):
         mcs._message_types.clear()
 
 
-class AbstractMessage(object, metaclass=MessageMeta):
+class Message(object, metaclass=MessageMeta):
     """
     Base class for messages sent over a peer's network transport.
     """
@@ -165,14 +165,27 @@ class AbstractMessage(object, metaclass=MessageMeta):
         for field_name in fields:
             field = fields[field_name]
             # TODO: Default value from field.
-            val = getattr(self, field_name, None)
+            # noinspection PyProtectedMember
+            val = getattr(self, field_name, field._default_value)
             buf.extend(field.marshal(val))
 
         return bytes(buf)
 
     @classmethod
-    def unmarshal(cls, byte_data):
-        pass
+    def unmarshal(cls, data):
+        fields = cls.__fields__
+        values = {}
+
+        # Fields
+        i = 0
+        for field_name in fields:
+            field = fields[field_name]
+            (val, size) = field.unmarshal(data[i:])
+            values[field_name] = val
+            i += size
+
+        # noinspection PyArgumentList
+        return cls(**values)
 
     @classmethod
     def fullname(cls):
@@ -184,6 +197,23 @@ class AbstractMessage(object, metaclass=MessageMeta):
             return cls.__name__  # Avoid reporting __builtin__
         else:
             return module + '.' + cls.__name__
+
+    def __repr__(self):
+        """
+        Developer readable representation of the class.
+        """
+        buf = [self.__class__.__name__, "("]
+        fields = self.__class__.__fields__
+
+        field_buf = []
+        for field_name in fields:
+            if hasattr(self, field_name):
+                field_buf.append("{}={}".format(field_name, getattr(self, field_name)))
+
+        buf.append(", ".join(field_buf))
+        buf.append(")")
+
+        return "".join(buf)
 
 
 class MessageHeader(object):

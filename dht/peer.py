@@ -70,7 +70,10 @@ class PeerServer(DatagramServer):
         self._logger.debug('%s:%s: got %r' % (address[0], address[1], data))
         # self.socket.sendto(('Received %s bytes' %
         #                     len(data)).encode('utf-8'), address)
-        self._dispatch(data, address)
+        try:
+            self._dispatch(data, address)
+        except Exception as ex:
+            self._logger.exception("Exception while handling message", ex)
 
     def _dispatch(self, data, address):
         # TODO: Dynamically dispatch to handler.
@@ -79,5 +82,7 @@ class PeerServer(DatagramServer):
 
         # For now message enum is at front of packet.
         enum_bytes = data[:4]
-        # MessageMeta.message_types.get()
-        pass
+        message_enum = int.from_bytes(enum_bytes, 'big')
+        message_type = MessageMeta.message_types().get(message_enum, None)
+        message = message_type.unmarshal(data[4:])
+        self._logger.debug("Received message %s", repr(message))

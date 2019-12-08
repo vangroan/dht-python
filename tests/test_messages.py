@@ -1,6 +1,6 @@
 import unittest
 
-from dht.messages import AbstractMessage, MessageDeclareError, Integer, MessageMeta
+from dht.messages import Message, MessageDeclareError, Integer, MessageMeta
 
 
 class TestMessages(unittest.TestCase):
@@ -15,7 +15,7 @@ class TestMessages(unittest.TestCase):
         """
 
         # assume
-        class FixtureMessage(AbstractMessage):
+        class FixtureMessage(Message):
             __message__ = 1
             value = Integer()
 
@@ -33,7 +33,7 @@ class TestMessages(unittest.TestCase):
         Should raise exception when a message does not have a type enum defined.
         """
         with self.assertRaises(MessageDeclareError) as context:
-            class InvalidMessage(AbstractMessage):
+            class InvalidMessage(Message):
                 # No __message__ defined
                 pass
 
@@ -46,7 +46,7 @@ class TestMessages(unittest.TestCase):
         Should store an internal registry of message class fields.
         """
 
-        class FieldsMessage(AbstractMessage):
+        class FieldsMessage(Message):
             __message__ = 2
             one = Integer()
 
@@ -58,10 +58,10 @@ class TestMessages(unittest.TestCase):
         Should store mapping of message enums to message classes.
         """
 
-        class OneMessage(AbstractMessage):
+        class OneMessage(Message):
             __message__ = 10000
 
-        class TwoMessage(AbstractMessage):
+        class TwoMessage(Message):
             __message__ = 20000
 
         self.assertEqual(2, len(MessageMeta.message_types()))
@@ -73,7 +73,7 @@ class TestMessages(unittest.TestCase):
         Should assign kwargs passed to constructor to message fields.
         """
         # assume
-        class FixtureMessage(AbstractMessage):
+        class FixtureMessage(Message):
             __message__ = 34
             one = Integer()
             two = Integer()
@@ -90,7 +90,7 @@ class TestMessages(unittest.TestCase):
         Should marshal a message's header and body to a binary stream.
         """
         # assume
-        class FixtureMessage(AbstractMessage):
+        class FixtureMessage(Message):
             __message__ = 567
             one = Integer()
 
@@ -104,3 +104,9 @@ class TestMessages(unittest.TestCase):
 
         # assert
         self.skipTest("TODO: Determine binary layout first before it can be tested")
+
+    def test_init_field_skip(self):
+        """
+        Should not overwrite fields set in the concrete message's __init__ method.
+        """
+        self.skipTest("TODO")
