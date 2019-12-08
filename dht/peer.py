@@ -81,13 +81,3 @@ class PeerServer(DatagramServer):
         # TODO: Extract message enum from data.
         # MessageMeta.message_types.get()
         pass
-
-
-def generate_id():
-    """
-    Generates a new random 512-bit ID, and formats it as a hex-digest.
-    """
-    # TODO: Replace with Crypto safe RNG
-    import random
-
-    return ''.join(['{:02x}'.format(random.randint(0, 0xFF)) for _ in range(64)])
