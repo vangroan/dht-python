@@ -17,7 +17,7 @@ class PeerServer(DatagramServer):
     Acts as the primary interface to this peer node.
     """
 
-    def __init__(self, address, port, node_id=None, bootstrap=[]):
+    def __init__(self, address, port, node_id=None, bootstrap=None):
         """
         Creates a new peer, with the given settings.
 
@@ -35,7 +35,7 @@ class PeerServer(DatagramServer):
         super().__init__('%s:%s' % (address, port))
 
         self._node_id = NodeId.generate() if node_id is None else node_id
-        self._bootstrap = list(bootstrap)
+        self._bootstrap = list(bootstrap) if bootstrap else list()
         self._logger = create_logger(__name__)
 
     @property
