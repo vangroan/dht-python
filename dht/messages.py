@@ -49,8 +49,15 @@ class Integer(MessageField):
 
 class MessageDeclareError(Exception):
     """
-    Error thrown during the meta- or abstract class processing of a message type, during
+    Error raised during the meta- or abstract class processing of a message type, during
     module declaration.
+    """
+    pass
+
+
+class MessageCreateError(Exception):
+    """
+    Error raised when a Message instance cannot be created.
     """
     pass
 
@@ -126,18 +133,21 @@ class Message(object, metaclass=MessageMeta):
 
         :returns: New instance of derived class.
         """
-        # object constructor takes no arguments
-        instance = super().__new__(cls)
+        try:
+            # object constructor takes no arguments
+            instance = super().__new__(cls)
 
-        fields = cls.__fields__
-        for field_name in fields:
-            field = fields[field_name]
-            # noinspection PyProtectedMember
-            setattr(instance, field_name, kwargs.get(field_name, field._default_value))
+            fields = cls.__fields__
+            for field_name in fields:
+                field = fields[field_name]
+                # noinspection PyProtectedMember
+                setattr(instance, field_name, kwargs.get(field_name, field._default_value))
 
-        instance._header = MessageHeader()
+            instance._header = MessageHeader()
 
-        return instance
+            return instance
+        except Exception as ex:
+            raise MessageCreateError("failed to create message instance") from ex
 
     @property
     def header(self):
@@ -198,6 +208,22 @@ class Message(object, metaclass=MessageMeta):
         else:
             return module + '.' + cls.__name__
 
+    def respond(self, response_cls, *args, **kwargs):
+        """
+        Creates an instance of the given message class, and configures it to be the
+        response leg of this message.
+
+        Raises an exception when the given class is not an instance of Message.
+        """
+        if not issubclass(response_cls, Message):
+            raise MessageCreateError("given class does not inherit from %s" % Message.__name__)
+
+        instance = response_cls(*args, **kwargs)
+        # noinspection PyProtectedMember
+        instance._header._request_guid = self._header._guid
+
+        return instance
+
     def __repr__(self):
         """
         Developer readable representation of the class.
@@ -224,7 +250,7 @@ class MessageHeader(object):
 
         # None for requests. For responses, global identifier of
         # request this message is responding to.
-        self._request_id = None
+        self._request_guid = None
 
         # Protocol version for this message.
         self._version = 1
@@ -235,3 +261,7 @@ class MessageHeader(object):
     @property
     def guid(self):
         return deepcopy(self._guid)
+
+    @property
+    def request_guid(self):
+        return self._request_guid

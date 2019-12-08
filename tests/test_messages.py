@@ -1,6 +1,6 @@
 import unittest
 
-from dht.messages import Message, MessageDeclareError, Integer, MessageMeta
+from dht.messages import Message, MessageDeclareError, Integer, MessageMeta, MessageCreateError
 
 
 class TestMessages(unittest.TestCase):
@@ -72,6 +72,7 @@ class TestMessages(unittest.TestCase):
         """
         Should assign kwargs passed to constructor to message fields.
         """
+
         # assume
         class FixtureMessage(Message):
             __message__ = 34
@@ -89,6 +90,7 @@ class TestMessages(unittest.TestCase):
         """
         Should marshal a message's header and body to a binary stream.
         """
+
         # assume
         class FixtureMessage(Message):
             __message__ = 567
@@ -110,3 +112,52 @@ class TestMessages(unittest.TestCase):
         Should not overwrite fields set in the concrete message's __init__ method.
         """
         self.skipTest("TODO")
+
+    def test_message_respond(self):
+        """
+        Should create a response message.
+        """
+
+        # assume
+        class FirstMessage(Message):
+            __message__ = 400
+
+        class SecondMessage(Message):
+            __message__ = 500
+            foo = Integer()
+
+        msg = FirstMessage()
+
+        # act
+        response = msg.respond(SecondMessage, foo=713)
+
+        # assert
+        self.assertEqual(msg.header.guid, response.header.request_guid,
+                         "Response message does not contain the request GUID")
+        self.assertEqual(713, response.foo, "Response message does not contain value passed via constructor")
+
+    def test_message_respond_incorrect_type(self):
+        """
+        Should raise an exception when an invalid type is given as a response class.
+        """
+
+        # assume
+        class FirstMessage(Message):
+            __message__ = 600
+
+        class SecondMessage(object):
+            __message__ = 700
+            foo = Integer()
+
+            def __init__(self, *args, **kwargs):
+                pass
+
+        msg = FirstMessage()
+
+        # act
+        with self.assertRaises(MessageCreateError) as context:
+            _response = msg.respond(SecondMessage, foo=891)
+
+        # assert
+        exception = context.exception
+        self.assertIsNotNone(exception)

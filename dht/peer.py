@@ -76,7 +76,6 @@ class PeerServer(DatagramServer):
             self._logger.exception("Exception while handling message", ex)
 
     def _dispatch(self, data, address):
-        # TODO: Dynamically dispatch to handler.
         # TODO: Map message type class to handler.
         # TODO: Middleware chain.
 
@@ -86,3 +85,8 @@ class PeerServer(DatagramServer):
         message_type = MessageMeta.message_types().get(message_enum, None)
         message = message_type.unmarshal(data[4:])
         self._logger.debug("Received message %s", repr(message))
+
+        # TODO: Dynamically dispatch to handler.
+        if type(message) is requests.PingRequest:
+            response = message.respond(requests.PongResponse, value=message.value)
+            self.socket.sendto(response.marshal(), address)
