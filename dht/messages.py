@@ -15,15 +15,33 @@ from datetime import datetime
 # Fields
 
 
-class MessageField(metaclass=ABCMeta):
+class MessageField(object):
     # TODO: Validation abstract method
     # TODO: Explicit field order
-    pass
+
+    def __init__(self, default_value):
+        self._default_value = default_value
+
+    @abstractmethod
+    def marshal(self, val):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def unmarshal(self, data):
+        raise NotImplementedError()
 
 
 class Integer(MessageField):
     # TODO: Validate type
-    pass
+
+    def __init__(self, default=0):
+        super().__init__(default)
+
+    def marshal(self, val):
+        return val.to_bytes(4, 'big')
+
+    def unmarshal(self, data):
+        return int.from_bytes(data, 'big')
 
 
 # =============================================================================
@@ -87,14 +105,24 @@ class AbstractMessage(object, metaclass=MessageMeta):
     """
     Base class for messages sent over a peer's network transport.
     """
+    __fields__ = None
 
     def __new__(cls, *args, **kwargs):
         """
         Creates a new message with standard message header.
 
+        Uses the given kwargs to assign fields to the resulting instance.
+
         :returns: New instance of derived class.
         """
-        instance = super().__new__(cls, *args, **kwargs)
+        # object constructor takes no arguments
+        instance = super().__new__(cls)
+
+        fields = cls.__fields__
+        for field_name in fields:
+            field = fields[field_name]
+            # noinspection PyProtectedMember
+            setattr(instance, field_name, kwargs.get(field_name, field._default_value))
 
         instance._header = MessageHeader()
 
@@ -113,8 +141,23 @@ class AbstractMessage(object, metaclass=MessageMeta):
         """
         return deepcopy(self._header)
 
+    # noinspection PyUnresolvedReferences
     def marshal(self):
-        return b''
+        fields = self.__class__.__fields__
+        buf = []
+
+        # Message enum
+        enum_field = Integer()
+        buf.extend(enum_field.marshal(self.__class__.__message__))
+
+        # Fields
+        for field_name in fields:
+            field = fields[field_name]
+            # TODO: Default value from field.
+            val = getattr(self, field_name, None)
+            buf.extend(field.marshal(val))
+
+        return bytes(buf)
 
     @classmethod
     def unmarshal(cls, byte_data):

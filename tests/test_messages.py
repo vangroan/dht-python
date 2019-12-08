@@ -68,8 +68,39 @@ class TestMessages(unittest.TestCase):
         self.assertEqual(OneMessage, MessageMeta.message_types()[10000])
         self.assertEqual(TwoMessage, MessageMeta.message_types()[20000])
 
+    def test_init_basic(self):
+        """
+        Should assign kwargs passed to constructor to message fields.
+        """
+        # assume
+        class FixtureMessage(AbstractMessage):
+            __message__ = 34
+            one = Integer()
+            two = Integer()
+
+        # act
+        msg = FixtureMessage(one=1, two=2)
+
+        # assert
+        self.assertEqual(1, msg.one)
+        self.assertEqual(2, msg.two)
+
     def test_marshal(self):
         """
         Should marshal a message's header and body to a binary stream.
         """
-        self.skipTest('TODO')
+        # assume
+        class FixtureMessage(AbstractMessage):
+            __message__ = 567
+            one = Integer()
+
+            def __init__(self, one):
+                self.one = one
+
+        message = FixtureMessage(one=1)
+
+        # act
+        data = message.marshal()
+
+        # assert
+        self.skipTest("TODO: Determine binary layout first before it can be tested")

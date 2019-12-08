@@ -78,6 +78,6 @@ class PeerServer(DatagramServer):
         # TODO: Middleware chain.
 
         # For now message enum is at front of packet.
-        # TODO: Extract message enum from data.
+        enum_bytes = data[:4]
         # MessageMeta.message_types.get()
         pass
