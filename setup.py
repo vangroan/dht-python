@@ -25,5 +25,10 @@ setup(
     install_requirements=get_requirements(),
     extras_require={
         'test': ['pytest', 'pytest-cov']
-    }
+    },
+    entry_points={
+        'console_scripts': [
+            'dht-client = dht.client_cli:send',
+        ],
+    },
 )
