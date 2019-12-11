@@ -3,7 +3,7 @@ Concrete request message types.
 """
 import random
 
-from dht.messages import Message, Integer
+from dht.messages import Message, Integer, NodeIdField
 
 
 class PingRequest(Message):
@@ -27,3 +27,11 @@ class PongResponse(Message):
     """
     __message__ = 101
     value = Integer()
+
+
+class FindClosestRequest(Message):
+    """
+    Query a peer for the node id it knows about, which is the closest to the given id.
+    """
+    __message__ = 200
+    node_id = NodeIdField()

@@ -1,6 +1,8 @@
 import unittest
+from copy import deepcopy
 
-from dht.messages import Message, MessageDeclareError, Integer, MessageMeta, MessageCreateError
+from dht.messages import Message, MessageDeclareError, Integer, MessageMeta, MessageCreateError, NodeIdField
+from dht.route import NodeId
 
 
 class TestMessages(unittest.TestCase):
@@ -125,16 +127,19 @@ class TestMessages(unittest.TestCase):
         class SecondMessage(Message):
             __message__ = 500
             foo = Integer()
+            node_id = NodeIdField()
 
         msg = FirstMessage()
 
         # act
-        response = msg.respond(SecondMessage, foo=713)
+        response = msg.respond(SecondMessage, foo=713, node_id=NodeId(765))
 
         # assert
         self.assertEqual(msg.header.guid, response.header.request_guid,
                          "Response message does not contain the request GUID")
         self.assertEqual(713, response.foo, "Response message does not contain value passed via constructor")
+        self.assertEqual(NodeId(765), response.node_id,
+                         "Response message does not contain value passed via constructor")
 
     def test_message_respond_incorrect_type(self):
         """
@@ -161,3 +166,18 @@ class TestMessages(unittest.TestCase):
         # assert
         exception = context.exception
         self.assertIsNotNone(exception)
+
+    def test_node_id_field_marshal(self):
+        """
+        Should correctly marshal and unmarshal a node id.
+        """
+        # assume
+        node_id = NodeId(947)
+        field = NodeIdField()
+
+        # act
+        data = field.marshal(deepcopy(node_id))  # copy to ensure no sneaky mutation >_>
+        node_id_back, _size = field.unmarshal(data)
+
+        # assert
+        self.assertEqual(NodeId(947), node_id_back, "Unmarshalled node id does not match original value")

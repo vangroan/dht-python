@@ -2,11 +2,13 @@
 Common message classes.
 """
 
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
 from uuid import uuid4
+
+from dht.route import NodeId
 
 
 # TODO: Remember endianess
@@ -42,6 +44,21 @@ class Integer(MessageField):
 
     def unmarshal(self, data):
         return int.from_bytes(data[:4], 'big'), 4
+
+
+class NodeIdField(MessageField):
+
+    def __init__(self, default=NodeId.empty()):
+        super().__init__(default)
+
+    def marshal(self, val):
+        """
+        Marshals node id to a 160-bit worth of bytes.
+        """
+        return val.raw_data.to_bytes(20, 'big')
+
+    def unmarshal(self, data):
+        return NodeId(int.from_bytes(data[:20], 'big')), 20
 
 
 # =============================================================================

@@ -43,6 +43,10 @@ class NodeId(object):
                 'node Id data must be an integer or string representation of an integer')
 
     @staticmethod
+    def empty():
+        return NodeId(0)
+
+    @staticmethod
     def generate():
         """
         Generates a new random 160-bit ID, and formats it as a hex-digest.
