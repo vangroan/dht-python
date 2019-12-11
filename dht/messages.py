@@ -2,7 +2,7 @@
 Common message classes.
 """
 
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
@@ -17,12 +17,13 @@ from dht.route import NodeId
 # Fields
 
 
-class MessageField(object):
+class MessageField(ABC):
     # TODO: Validation abstract method
     # TODO: Explicit field order
 
-    def __init__(self, default_value):
-        self._default_value = default_value
+    @abstractmethod
+    def default_value(self):
+        raise NotImplementedError()
 
     @abstractmethod
     def marshal(self, val):
@@ -37,7 +38,10 @@ class Integer(MessageField):
     # TODO: Validate type
 
     def __init__(self, default=0):
-        super().__init__(default)
+        self._default_value = default
+
+    def default_value(self):
+        return self._default_value
 
     def marshal(self, val):
         return val.to_bytes(4, 'big')
@@ -49,7 +53,10 @@ class Integer(MessageField):
 class NodeIdField(MessageField):
 
     def __init__(self, default=NodeId.empty()):
-        super().__init__(default)
+        self._default_value = default
+
+    def default_value(self):
+        return self._default_value
 
     def marshal(self, val):
         """
@@ -156,7 +163,7 @@ class Message(object, metaclass=MessageMeta):
             for field_name in fields:
                 field = fields[field_name]
                 # noinspection PyProtectedMember
-                setattr(instance, field_name, kwargs.get(field_name, field._default_value))
+                setattr(instance, field_name, kwargs.get(field_name, field.default_value))
 
             instance._header = MessageHeader()
 
@@ -179,6 +186,9 @@ class Message(object, metaclass=MessageMeta):
 
     # noinspection PyUnresolvedReferences
     def marshal(self):
+        """
+        Outputs the message as bytes.
+        """
         fields = self.__class__.__fields__
         buf = []
 
@@ -191,13 +201,16 @@ class Message(object, metaclass=MessageMeta):
             field = fields[field_name]
             # TODO: Default value from field.
             # noinspection PyProtectedMember
-            val = getattr(self, field_name, field._default_value)
+            val = getattr(self, field_name, field.default_value)
             buf.extend(field.marshal(val))
 
         return bytes(buf)
 
     @classmethod
     def unmarshal(cls, data):
+        """
+        Accepts bytes containing a marshalled message, and returns an instance of this message class.
+        """
         fields = cls.__fields__
         values = {}
 
@@ -258,6 +271,9 @@ class Message(object, metaclass=MessageMeta):
 
 
 class MessageHeader(object):
+    """
+    Common meta data at the beginning of a message.
+    """
 
     def __init__(self):
         # Global identifier used to match requests to responses.
