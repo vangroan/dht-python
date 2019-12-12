@@ -203,8 +203,8 @@ class Message(object, metaclass=MessageMeta):
             # noinspection PyProtectedMember
             val = getattr(self, field_name, field.default_value)
             buf.extend(field.marshal(val))
-
-        return bytes(buf)
+        data = bytes(buf)
+        return data
 
     @classmethod
     def unmarshal(cls, data):

@@ -67,7 +67,7 @@ class PeerServer(DatagramServer):
         return super().start()
 
     def handle(self, data, address):  # pylint:disable=method-hidden
-        self._logger.debug('%s:%s: got %r' % (address[0], address[1], data))
+        self._logger.debug('{}:{}: got {}'.format(address[0], address[1], [hex(d) for d in data]))
         # self.socket.sendto(('Received %s bytes' %
         #                     len(data)).encode('utf-8'), address)
         try:

@@ -15,10 +15,12 @@ class PingRequest(Message):
     __message__ = 100
     value = Integer()
 
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-
-        self.value = random.randint(0, (2**32) - 1)
+    @staticmethod
+    def generate():
+        """
+        Creates a ping request with a random value.
+        """
+        return PingRequest(value=random.randint(0, (2 ** 32) - 1))
 
 
 class PongResponse(Message):

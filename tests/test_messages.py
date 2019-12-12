@@ -90,12 +90,12 @@ class TestMessages(unittest.TestCase):
 
     def test_marshal(self):
         """
-        Should marshal a message's header and body to a binary stream.
+        Should marshal a message's header and body to a binary array.
         """
 
         # assume
         class FixtureMessage(Message):
-            __message__ = 567
+            __message__ = 567  #
             one = Integer()
 
             def __init__(self, one):
@@ -107,7 +107,31 @@ class TestMessages(unittest.TestCase):
         data = message.marshal()
 
         # assert
-        self.skipTest("TODO: Determine binary layout first before it can be tested")
+        # NOTE: Binary format not considered complete yet
+        self.assertEqual([0, 0, 2, 55], list(data[:4]))
+        self.assertEqual([0, 0, 0, 1], list(data[4:]))
+
+    def test_unmarshal(self):
+        """
+        Should unmarshal a message's header and body from a binary array.
+        """
+
+        # assume
+        class FixtureMessage(Message):
+            __message__ = 567  #
+            one = Integer()
+
+            def __init__(self, one):
+                self.one = one
+
+        data = [0, 0, 2, 55, 0, 0, 0, 1]
+
+        # act
+        message = FixtureMessage.unmarshal(data[4:])
+
+        # assert
+        # NOTE: Binary format not considered complete yet
+        self.assertEqual(1, message.one)
 
     def test_init_field_skip(self):
         """

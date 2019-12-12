@@ -42,7 +42,7 @@ def send(address, port, module, message):
     client = DhtClient()
 
     # TODO: Safely parse given `message` into request object
-    request = PingRequest()
+    request = PingRequest.generate()
     logger.info("Sending Message %s" % request)
 
     response = client.send(address, port, request)

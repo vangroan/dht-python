@@ -29,7 +29,7 @@ class DhtClient(object):
 
             # Response
             data, _ = sock.recvfrom(8192)
-            self._logger.info("Received {}".format(data))
+            self._logger.debug("Received {}".format(list(data)))
 
             # Assumes that message types are registered in message meta registry.
             # TODO: throw exception when message type is unknown, or unmarshalling fails
