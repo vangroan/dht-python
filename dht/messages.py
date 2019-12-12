@@ -21,6 +21,7 @@ class MessageField(ABC):
     # TODO: Validation abstract method
     # TODO: Explicit field order
 
+    @property
     @abstractmethod
     def default_value(self):
         raise NotImplementedError()
@@ -40,6 +41,7 @@ class Integer(MessageField):
     def __init__(self, default=0):
         self._default_value = default
 
+    @property
     def default_value(self):
         return self._default_value
 
@@ -55,6 +57,7 @@ class NodeIdField(MessageField):
     def __init__(self, default=NodeId.empty()):
         self._default_value = default
 
+    @property
     def default_value(self):
         return self._default_value
 

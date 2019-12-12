@@ -88,6 +88,24 @@ class TestMessages(unittest.TestCase):
         self.assertEqual(1, msg.one)
         self.assertEqual(2, msg.two)
 
+    def test_new_default(self):
+        """
+        Should assign default values to fields of new message instance.
+        """
+
+        # assume
+        class DefaultMessage(Message):
+            __message__ = 34
+            integer = Integer()
+            node_id = NodeIdField()
+
+        # act
+        msg = DefaultMessage()
+
+        # assert
+        self.assertEqual(Integer().default_value, msg.integer)
+        self.assertEqual(NodeIdField().default_value, msg.node_id)
+
     def test_marshal(self):
         """
         Should marshal a message's header and body to a binary array.
