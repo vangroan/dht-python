@@ -2,12 +2,18 @@ import logging
 
 from dht.route import NodeId
 from gevent.server import DatagramServer
-from dht.messages import MessageMeta
+from dht.messages import MessageMeta, Message
 from dht.utils import create_logger
 
 # Import concrete messages so they get registered in the meta class.
 # noinspection PyUnresolvedReferences
 from dht import requests
+
+
+class PeerHandleError(Exception):
+    """
+    Error raised while handling an incoming message.
+    """
 
 
 class PeerServer(DatagramServer):
@@ -78,11 +84,10 @@ class PeerServer(DatagramServer):
     def _dispatch(self, data, address):
         # TODO: Map message type class to handler.
         # TODO: Middleware chain.
+        message_type = Message.extract_message_type(data)
+        if not message_type:
+            raise PeerHandleError("Peer received message of unknown type")
 
-        # For now message enum is at front of packet.
-        enum_bytes = data[:4]
-        message_enum = int.from_bytes(enum_bytes, 'big')
-        message_type = MessageMeta.message_types().get(message_enum, None)
         message = message_type.unmarshal(data[4:])
         self._logger.debug("Received message %s", repr(message))
 

@@ -239,6 +239,19 @@ class Message(object, metaclass=MessageMeta):
         else:
             return module + '.' + cls.__name__
 
+    @classmethod
+    def extract_message_type(cls, data):
+        """
+        Given a bytes containing a marshalled message, determine the concrete message class and return the type.
+
+        :param data: Bytes containing marshalled message.
+        :return: Concrete message type from type registry, None if not found.
+        """
+        # message type is at beginning of byte array
+        enum_bytes = data[:4]
+        message_enum = int.from_bytes(enum_bytes, 'big')
+        return MessageMeta.message_types().get(message_enum, None)
+
     def respond(self, response_cls, *args, **kwargs):
         """
         Creates an instance of the given message class, and configures it to be the

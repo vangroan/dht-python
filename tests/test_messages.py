@@ -223,3 +223,21 @@ class TestMessages(unittest.TestCase):
 
         # assert
         self.assertEqual(NodeId(947), node_id_back, "Unmarshalled node id does not match original value")
+
+    def test_extract_message_type(self):
+        """
+        Should extract the message type from bytes.
+        """
+
+        # assume
+        class Msg(Message):
+            __message__ = 4567
+
+        data = Msg().marshal()
+
+        # act
+        message_type = Message.extract_message_type(data)
+
+        # assert
+        self.assertIsNotNone(message_type, "Message type not found")
+        self.assertEqual(message_type, Msg, "Unexpected message type extracted")

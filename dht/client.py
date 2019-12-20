@@ -3,7 +3,7 @@ UDP client for connecting to a Peer, but not participating in the network.
 """
 from gevent import socket
 
-from dht.messages import MessageMeta
+from dht.messages import MessageMeta, Message
 from dht.utils import create_logger
 
 
@@ -33,7 +33,5 @@ class DhtClient(object):
 
             # Assumes that message types are registered in message meta registry.
             # TODO: throw exception when message type is unknown, or unmarshalling fails
-            enum_bytes = data[:4]
-            message_enum = int.from_bytes(enum_bytes, 'big')
-            message_type = MessageMeta.message_types().get(message_enum, None)
+            message_type = Message.extract_message_type(data)
             return message_type.unmarshal(data[4:])
