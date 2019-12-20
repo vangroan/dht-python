@@ -8,13 +8,13 @@ def incoming(message_type):
     """
 
     def inner(func):
-        func.__message_type = message_type
+        func.__incoming_message_type = message_type
         return func
 
     return inner
 
 
-def outgoing(func, *message_types):
+def outgoing(*message_types):
     raise NotImplementedError()
 
 
@@ -26,8 +26,8 @@ class MessageHandlerMeta(type):
         for name in attrs:
             attr = attrs[name]
             if callable(attr):
-                if hasattr(attr, '__message_type'):
-                    handler_map[getattr(attr, '__message_type')] = name
+                if hasattr(attr, '__incoming_message_type'):
+                    handler_map[getattr(attr, '__incoming_message_type')] = name
 
         attrs['_handler_map'] = handler_map
 
