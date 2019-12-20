@@ -31,6 +31,11 @@ def outgoing(*message_types):
 
 
 class MessageHandlerMeta(type):
+    """
+    Meta class for message handler types.
+
+    Sets up a table that maps message types to class methods that will handle them.
+    """
 
     def __new__(mcs, classname, bases, attrs):
         handler_map = dict()
@@ -47,9 +52,21 @@ class MessageHandlerMeta(type):
 
 
 class MessageHandler(metaclass=MessageHandlerMeta):
+    """
+    Base for defining methods that handle incoming message requests, and produces outgoing message responses.
+    """
+
     def dispatch(self, message):
+        """
+        Calls a handler method based on the type of the given message instance.
+
+        :param message: Message payload instance.
+        """
+        # noinspection PyUnresolvedReferences
         method_name = self._handler_map.get(type(message))
         if method_name:
             handler = getattr(self, method_name)
             if handler:
                 handler(message)
+
+        # TODO: What to do if message is unhandled?
