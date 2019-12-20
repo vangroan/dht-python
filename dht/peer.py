@@ -67,7 +67,7 @@ class PeerServer(DatagramServer):
             if message_type in self._handlers:
                 raise PeerHandleError(
                     "Message type handler is already registered with peer: %s" % message_type.__name__)
-            self._handlers[message_type] = (handler_type, handler_map[message_type])
+            self._handlers[message_type] = handler_type
 
     def bootstrap(self, nodes):
         """
@@ -109,11 +109,10 @@ class PeerServer(DatagramServer):
         message = message_type.unmarshal(data[4:])
         self._logger.debug("Received message %s", repr(message))
 
-        handler_pair = self._handlers.get(message_type)
-        if handler_pair is None:
+        handler_type = self._handlers.get(message_type)
+        if handler_type is None:
             raise PeerHandleError("No handler registered for message type: %s" % message_type.__name__)
 
-        handler_type, method_name = handler_pair
         handler = handler_type()
         handler.dispatch(message)
 
