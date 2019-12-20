@@ -1,6 +1,8 @@
 from datetime import datetime
 from copy import deepcopy
 
+from gevent import threading
+
 
 class RoutingTableError(Exception):
     pass
@@ -136,6 +138,9 @@ class RoutingTable:
         # between contacts inside the same bucket.
         self._depth = 5
 
+        # Ensure routing table is thread safe.
+        self._lock = threading.Lock()
+
     def insert(self, address, port, node_id):
         """
         Inserts a contact into the routing table.
@@ -144,7 +149,8 @@ class RoutingTable:
         :param port: Port as integer.
         :param node_id: Identifier of the node.
         """
-        self._insert(self._root, Contact(address, port, node_id))
+        with self._lock:
+            self._insert(self._root, Contact(address, port, node_id))
 
     def _insert(self, node, contact, level=0):
         """
@@ -186,7 +192,8 @@ class RoutingTable:
         Searches the routing table for a contact that matches the exact given
         node id.
         """
-        return self._find(node_id, self._root)
+        with self._lock:
+            return self._find(node_id, self._root)
 
     def _find(self, node_id, node, level=0):
         if node.is_leaf:

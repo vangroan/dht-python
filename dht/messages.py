@@ -305,6 +305,9 @@ class MessageHeader(object):
         # UTC timestamp of when this message was first created by it's sender.
         self._created_on = datetime
 
+        # TODO: Senders must identify themselves
+        self._sender_node_id = None
+
     @property
     def guid(self):
         return deepcopy(self._guid)

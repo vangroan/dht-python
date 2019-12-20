@@ -52,6 +52,7 @@ class MessageHandlerMeta(ABCMeta):
         return super().__new__(mcs, classname, bases, attrs)
 
 
+# noinspection PyAttributeOutsideInit
 class MessageHandler(metaclass=MessageHandlerMeta):
     """
     Base for defining methods that handle incoming message requests, and produces outgoing message responses.
@@ -61,6 +62,7 @@ class MessageHandler(metaclass=MessageHandlerMeta):
         instance = super().__new__(cls, *args, **kwargs)
         # The message that the peer server must send back across the socket.
         instance._response_message = None
+        instance._context = None
         return instance
 
     @classmethod
@@ -68,8 +70,18 @@ class MessageHandler(metaclass=MessageHandlerMeta):
         # noinspection PyUnresolvedReferences
         return deepcopy(cls._handler_map)
 
+    @property
+    def context(self):
+        return self._context
+
+    @context.setter
+    def context(self, val):
+        self._context = val
+
+    def get_response(self):
+        return self._response_message
+
     def respond(self, response_message):
-        # noinspection PyAttributeOutsideInit
         self._response_message = response_message
 
     def dispatch(self, message):

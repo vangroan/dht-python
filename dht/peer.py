@@ -1,6 +1,7 @@
 import logging
+from copy import copy
 
-from dht.route import NodeId
+from dht.route import NodeId, RoutingTable
 from gevent.server import DatagramServer
 from dht.messages import MessageMeta, Message
 from dht.utils import create_logger
@@ -43,6 +44,7 @@ class PeerServer(DatagramServer):
 
         self._node_id = NodeId.generate() if node_id is None else node_id
         self._bootstrap = list(bootstrap) if bootstrap else list()
+        self._routing_table = RoutingTable(self._node_id)
         self._logger = create_logger(__name__)
         self._handlers = dict()
 
@@ -114,10 +116,15 @@ class PeerServer(DatagramServer):
             raise PeerHandleError("No handler registered for message type: %s" % message_type.__name__)
 
         handler = handler_type()
+        handler.context = {
+            'routing_table': self._routing_table,
+            'sender': copy(address),
+        }
         handler.dispatch(message)
 
-        if handler._response_message:
-            self.socket.sendto(handler._response_message.marshal(), address)
+        response_message = handler.get_response()
+        if response_message:
+            self.socket.sendto(response_message.marshal(), address)
 
         # if type(message) is requests.PingRequest:
         #     response = message.respond(requests.PongResponse, value=message.value)
