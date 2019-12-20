@@ -9,7 +9,7 @@ from dht.utils import create_logger
 # Import concrete messages so they get registered in the meta class.
 # noinspection PyUnresolvedReferences
 from dht import requests
-from handler import MessageHandler
+from dht.handler import MessageHandler
 
 
 class PeerHandleError(Exception):
