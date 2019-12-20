@@ -1,6 +1,7 @@
 import gevent
 import gevent.event
 
+from dht.dht_handlers import DefaultDhtHandler
 from dht.peer import PeerServer
 from dht.utils import create_logger
 
@@ -14,6 +15,7 @@ def main():
     gevent.get_hub().NOT_ERROR += (KeyboardInterrupt,)
 
     peer = PeerServer('', '9000')
+    peer.register(DefaultDhtHandler)
     cancel = gevent.event.Event()
 
     try:

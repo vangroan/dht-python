@@ -1,4 +1,5 @@
-from abc import ABC
+from abc import ABCMeta
+from copy import deepcopy
 from functools import wraps
 
 
@@ -30,7 +31,7 @@ def outgoing(*message_types):
     return inner
 
 
-class MessageHandlerMeta(type):
+class MessageHandlerMeta(ABCMeta):
     """
     Meta class for message handler types.
 
@@ -55,6 +56,21 @@ class MessageHandler(metaclass=MessageHandlerMeta):
     """
     Base for defining methods that handle incoming message requests, and produces outgoing message responses.
     """
+
+    def __new__(cls, *args, **kwargs):
+        instance = super().__new__(cls, *args, **kwargs)
+        # The message that the peer server must send back across the socket.
+        instance._response_message = None
+        return instance
+
+    @classmethod
+    def handler_map(cls):
+        # noinspection PyUnresolvedReferences
+        return deepcopy(cls._handler_map)
+
+    def respond(self, response_message):
+        # noinspection PyAttributeOutsideInit
+        self._response_message = response_message
 
     def dispatch(self, message):
         """

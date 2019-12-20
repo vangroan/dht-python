@@ -8,6 +8,7 @@ from dht.utils import create_logger
 # Import concrete messages so they get registered in the meta class.
 # noinspection PyUnresolvedReferences
 from dht import requests
+from handler import MessageHandler
 
 
 class PeerHandleError(Exception):
@@ -43,11 +44,30 @@ class PeerServer(DatagramServer):
         self._node_id = NodeId.generate() if node_id is None else node_id
         self._bootstrap = list(bootstrap) if bootstrap else list()
         self._logger = create_logger(__name__)
+        self._handlers = dict()
 
     @property
     def id(self):
         """Unique identifier for this node."""
         return self._node_id
+
+    def register(self, handler_type):
+        """
+        Adds a message handler type to the peer's mapping.
+        """
+        if not isinstance(handler_type, type):
+            raise TypeError("Argument must be class type")
+
+        if MessageHandler not in handler_type.__bases__:
+            raise TypeError("Handler type must subclass MessageHandler")
+
+        # noinspection PyUnresolvedReferences
+        handler_map = handler_type.handler_map()
+        for message_type in handler_map:
+            if message_type in self._handlers:
+                raise PeerHandleError(
+                    "Message type handler is already registered with peer: %s" % message_type.__name__)
+            self._handlers[message_type] = (handler_type, handler_map[message_type])
 
     def bootstrap(self, nodes):
         """
@@ -74,8 +94,6 @@ class PeerServer(DatagramServer):
 
     def handle(self, data, address):  # pylint:disable=method-hidden
         self._logger.debug('{}:{}: got {}'.format(address[0], address[1], [hex(d) for d in data]))
-        # self.socket.sendto(('Received %s bytes' %
-        #                     len(data)).encode('utf-8'), address)
         try:
             self._dispatch(data, address)
         except Exception as ex:
@@ -91,7 +109,17 @@ class PeerServer(DatagramServer):
         message = message_type.unmarshal(data[4:])
         self._logger.debug("Received message %s", repr(message))
 
-        # TODO: Dynamically dispatch to handler.
-        if type(message) is requests.PingRequest:
-            response = message.respond(requests.PongResponse, value=message.value)
-            self.socket.sendto(response.marshal(), address)
+        handler_pair = self._handlers.get(message_type)
+        if handler_pair is None:
+            raise PeerHandleError("No handler registered for message type: %s" % message_type.__name__)
+
+        handler_type, method_name = handler_pair
+        handler = handler_type()
+        handler.dispatch(message)
+
+        if handler._response_message:
+            self.socket.sendto(handler._response_message.marshal(), address)
+
+        # if type(message) is requests.PingRequest:
+        #     response = message.respond(requests.PongResponse, value=message.value)
+        #     self.socket.sendto(response.marshal(), address)
