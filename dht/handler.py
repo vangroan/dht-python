@@ -15,7 +15,19 @@ def incoming(message_type):
 
 
 def outgoing(*message_types):
-    raise NotImplementedError()
+    """
+    Decorator for message types returned by the handler function.
+
+    Usage is optional. For documenting handlers, but currently does not change any behaviour.
+
+    :param message_types: Types that inherit from Message.
+    """
+
+    def inner(func):
+        func.__incoming_message_type = message_types
+        return func
+
+    return inner
 
 
 class MessageHandlerMeta(type):
