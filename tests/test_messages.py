@@ -1,7 +1,8 @@
 import unittest
 from copy import deepcopy
+from uuid import UUID
 
-from dht.messages import Message, MessageDeclareError, Integer, MessageMeta, MessageCreateError, NodeIdField
+from dht.messages import Message, MessageDeclareError, Integer, MessageMeta, MessageCreateError, NodeIdField, GuidField
 from dht.route import NodeId
 
 
@@ -114,20 +115,21 @@ class TestMessages(unittest.TestCase):
         # assume
         class FixtureMessage(Message):
             __message__ = 567  #
-            one = Integer()
+            one = Integer()  # 4-bytes
+            two = GuidField()  # 20-bytes
+            three = NodeIdField()  # 20-bytes
 
-            def __init__(self, one):
-                self.one = one
-
-        message = FixtureMessage(one=1)
+        message = FixtureMessage(one=1, two=UUID(int=255), three=NodeId(12345))
 
         # act
         data = message.marshal()
 
         # assert
         # NOTE: Binary format not considered complete yet
-        self.assertEqual([0, 0, 2, 55], list(data[:4]))
-        self.assertEqual([0, 0, 0, 1], list(data[4:]))
+        self.assertEqual([0, 0, 2, 55], list(data[:4]))  # message type id
+        self.assertEqual([0, 0, 0, 1], list(data[4:8]))  # one
+        self.assertEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255], list(data[8:28]))  # two
+        self.assertEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 48, 57], list(data[28:48]))  # three
 
     def test_unmarshal(self):
         """

@@ -6,7 +6,8 @@ from abc import abstractmethod, ABC
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
-from uuid import uuid4
+from itertools import islice
+from uuid import uuid4, UUID
 
 from dht.route import NodeId
 
@@ -69,6 +70,26 @@ class NodeIdField(MessageField):
 
     def unmarshal(self, data):
         return NodeId(int.from_bytes(data[:20], 'big')), 20
+
+
+class GuidField(MessageField):
+    def __init__(self, default_value=uuid4):
+        """
+        :type default_value: Optional[UUID]
+        """
+        self._default_value = default_value
+        if default_value:
+            self._default_value = default_value
+
+    @property
+    def default_value(self):
+        return self._default_value
+
+    def marshal(self, val):
+        return val.bytes
+
+    def unmarshal(self, data):
+        return UUID(bytes=data), 20
 
 
 # =============================================================================
@@ -165,10 +186,19 @@ class Message(object, metaclass=MessageMeta):
             fields = cls.__fields__
             for field_name in fields:
                 field = fields[field_name]
-                # noinspection PyProtectedMember
-                setattr(instance, field_name, kwargs.get(field_name, field.default_value))
+
+                # Allow for lazy defaults via lambdas
+                if callable(field.default_value):
+                    default_value = field.default_value()
+                else:
+                    default_value = field.default_value
+
+                setattr(instance, field_name, kwargs.get(field_name, default_value))
 
             instance._header = MessageHeader()
+
+            # Assign message type id to header so it will be included when marshalled.
+            instance._header._sender_node_id = getattr(cls, '__message__', 0)
 
             return instance
         except Exception as ex:
@@ -202,9 +232,14 @@ class Message(object, metaclass=MessageMeta):
         # Fields
         for field_name in fields:
             field = fields[field_name]
-            # TODO: Default value from field.
-            # noinspection PyProtectedMember
-            val = getattr(self, field_name, field.default_value)
+
+            # Allow for lazy defaults via lambdas
+            if callable(field.default_value):
+                default_value = field.default_value()
+            else:
+                default_value = field.default_value
+
+            val = getattr(self, field_name, default_value)
             buf.extend(field.marshal(val))
         data = bytes(buf)
         return data
@@ -290,8 +325,20 @@ class MessageHeader(object):
     """
     Common meta data at the beginning of a message.
     """
+    __fields__ = {
+        'message_type_id': Integer(),
+        'guid': GuidField(),
+        'request_guid': GuidField(default_value=None),
+        'version': Integer(),
+        # 'created_on': DateTimeField(),
+        'sender_node_id': NodeIdField(),
+    }
 
     def __init__(self):
+        # Importantly the type id is at the front of the message, so it can be
+        # used to determine the class of message contained in the byte data.
+        self._message_type_id = 0
+
         # Global identifier used to match requests to responses.
         self._guid = uuid4()
 
@@ -315,3 +362,9 @@ class MessageHeader(object):
     @property
     def request_guid(self):
         return self._request_guid
+
+    def marshal(self):
+        raise NotImplementedError()
+
+    def unmarshal(self):
+        raise NotImplementedError()
