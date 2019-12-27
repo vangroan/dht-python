@@ -116,7 +116,7 @@ class TestMessages(unittest.TestCase):
         class FixtureMessage(Message):
             __message__ = 567  #
             one = Integer()  # 4-bytes
-            two = GuidField()  # 20-bytes
+            two = GuidField()  # 16-bytes
             three = NodeIdField()  # 20-bytes
 
         message = FixtureMessage(one=1, two=UUID(int=255), three=NodeId(12345))
@@ -128,8 +128,8 @@ class TestMessages(unittest.TestCase):
         # NOTE: Binary format not considered complete yet
         self.assertEqual([0, 0, 2, 55], list(data[:4]))  # message type id
         self.assertEqual([0, 0, 0, 1], list(data[4:8]))  # one
-        self.assertEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255], list(data[8:28]))  # two
-        self.assertEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 48, 57], list(data[28:48]))  # three
+        self.assertEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255], list(data[8:24]))  # two
+        self.assertEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 48, 57], list(data[24:44]))  # three
 
     def test_unmarshal(self):
         """

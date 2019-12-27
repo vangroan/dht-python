@@ -55,8 +55,8 @@ class Integer(MessageField):
 
 class NodeIdField(MessageField):
 
-    def __init__(self, default=NodeId.empty()):
-        self._default_value = default
+    def __init__(self, default_value=NodeId.empty()):
+        self._default_value = default_value
 
     @property
     def default_value(self):
@@ -66,10 +66,17 @@ class NodeIdField(MessageField):
         """
         Marshals node id to a 160-bit worth of bytes.
         """
+        if val is None:
+            # TODO: Properly handle optional fields
+            return bytes(20)
         return val.raw_data.to_bytes(20, 'big')
 
     def unmarshal(self, data):
-        return NodeId(int.from_bytes(data[:20], 'big')), 20
+        inner = int.from_bytes(data[:20], 'big')
+        if inner == 0:
+            # TODO: Properly handle optional fields
+            return None, 20
+        return NodeId(inner), 20
 
 
 class GuidField(MessageField):
@@ -86,10 +93,30 @@ class GuidField(MessageField):
         return self._default_value
 
     def marshal(self, val):
+        if val is None:
+            # TODO: Properly handle optional fields
+            return bytes(16)
         return val.bytes
 
     def unmarshal(self, data):
-        return UUID(bytes=data), 20
+        return UUID(bytes=data[:16]), 16
+
+
+class DateTimeField(MessageField):
+    def __init__(self, default_value=datetime.min):
+        self._default_value = default_value
+
+    @property
+    def default_value(self):
+        return self._default_value
+
+    def marshal(self, val):
+        unix_time = int(val.timestamp())
+        return unix_time.to_bytes(8, 'big')
+
+    def unmarshal(self, data):
+        unix_time = int.from_bytes(bytes=data[:8], byteorder='big')
+        return datetime.fromtimestamp(float(unix_time)), 8
 
 
 # =============================================================================
@@ -330,8 +357,8 @@ class MessageHeader(object):
         'guid': GuidField(),
         'request_guid': GuidField(default_value=None),
         'version': Integer(),
-        # 'created_on': DateTimeField(),
-        'sender_node_id': NodeIdField(),
+        'created_on': DateTimeField(),
+        'sender_node_id': NodeIdField(default_value=None),
     }
 
     def __init__(self):
@@ -350,7 +377,7 @@ class MessageHeader(object):
         self._version = 1
 
         # UTC timestamp of when this message was first created by it's sender.
-        self._created_on = datetime
+        self._created_on = datetime.utcnow()
 
         # TODO: Senders must identify themselves
         self._sender_node_id = None
@@ -364,7 +391,32 @@ class MessageHeader(object):
         return self._request_guid
 
     def marshal(self):
-        raise NotImplementedError()
+        buf = bytearray()
 
-    def unmarshal(self):
-        raise NotImplementedError()
+        for field_name in self.__fields__:
+            n = '_%s' % field_name
+            field = self.__fields__[field_name]
+            instance_field = getattr(self, n)
+
+            if getattr(self, n) is None:
+                buf.extend(field.marshal(field.default_value))
+            else:
+                buf.extend(field.marshal(instance_field))
+
+        return bytes(buf)
+
+    @classmethod
+    def unmarshal(cls, data):
+        instance = cls()
+
+        i = 0
+        for field_name in cls.__fields__:
+            n = '_%s' % field_name
+            field = cls.__fields__[field_name]
+
+            val, offset = field.unmarshal(data[i:])
+            i += offset
+
+            setattr(instance, n, val)
+
+        return instance
